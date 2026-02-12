@@ -1,11 +1,14 @@
 import { useState } from "react";
-import reactLogo from "./assets/react.svg";
 import { invoke } from "@tauri-apps/api/core";
-import "./App.css";
+import Navbar from "./components/navbar/navbar";
+import Topbar from "./components/topbar/topbar";
+import Content from "./content/content";
+import TimeLine from "./components/timeline/timeline";
 
 function App() {
   const [greetMsg, setGreetMsg] = useState("");
   const [name, setName] = useState("");
+  const [isShowDetail, setIsShowDetail] = useState<boolean>(true)
 
   async function greet() {
     // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
@@ -13,37 +16,13 @@ function App() {
   }
 
   return (
-    <main className="container">
-      <h1>Welcome to Tauri + React</h1>
-
-      <div className="row">
-        <a href="https://vite.dev" target="_blank">
-          <img src="/vite.svg" className="logo vite" alt="Vite logo" />
-        </a>
-        <a href="https://tauri.app" target="_blank">
-          <img src="/tauri.svg" className="logo tauri" alt="Tauri logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
+    <main className="container w-screen h-screen bg-black overflow-hidden flex justify-between items-center">
+      <Navbar isShowDetail={isShowDetail} setIsShowDetail={setIsShowDetail}/>
+      <div className={`h-screen bg-base text-typography flex justify-between flex-col ${isShowDetail?"w-[calc(100vw-400px)]":"w-[calc(100vw-20px)] transition-all duration-200"}`}>
+        <Topbar/>
+        <Content/>
+        <TimeLine/>
       </div>
-      <p>Click on the Tauri, Vite, and React logos to learn more.</p>
-
-      <form
-        className="row"
-        onSubmit={(e) => {
-          e.preventDefault();
-          greet();
-        }}
-      >
-        <input
-          id="greet-input"
-          onChange={(e) => setName(e.currentTarget.value)}
-          placeholder="Enter a name..."
-        />
-        <button type="submit">Greet</button>
-      </form>
-      <p>{greetMsg}</p>
     </main>
   );
 }
