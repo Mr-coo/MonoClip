@@ -1,8 +1,8 @@
 import { create } from "zustand";
-import { Video } from "../types/video";
+import { MediaAsset } from "../types/mediaAsset";
 
 interface MediaState {
-  videos: Video[];
+  assets: MediaAsset[];
   addAsset: (asset: MediaAsset) => void;
 }
 

@@ -54,6 +54,7 @@ export default function Navbar({isShowDetail, setIsShowDetail}:{isShowDetail:boo
               label={tool.label}
               onClick={()=>{
                 setOpenIndex(prev => (prev === index ? null : index))
+                setIsShowDetail(true)
               }}
             />
           ))}
