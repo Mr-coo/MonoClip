@@ -8,9 +8,9 @@ import { FaLayerGroup } from "react-icons/fa";
 import NavbarItem from "./navbar.item";
 import { Dispatch, SetStateAction, useState } from "react";
 import MediaItem from "./items/media.item";
-import MediaText from "./items/media.text";
 import CaptionItem from "./items/caption.item";
 import { MdOutlineArrowLeft, MdOutlineArrowRight } from "react-icons/md";
+import TextItem from "./items/text.item";
 
 export default function Navbar({isShowDetail, setIsShowDetail}:{isShowDetail:boolean, setIsShowDetail: Dispatch<SetStateAction<boolean>>}){
   const [openIndex, setOpenIndex] = useState<number | null>(null)
@@ -25,7 +25,7 @@ export default function Navbar({isShowDetail, setIsShowDetail}:{isShowDetail:boo
     {
       icon: <PiTextTBold className="text-typography" size={iconSize} />,
       label: "Text",
-      content: <MediaText/>
+      content: <TextItem/>
     },
     {
       icon: <LuCaptions className="text-typography" size={iconSize} />,

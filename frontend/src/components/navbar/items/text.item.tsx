@@ -1,6 +1,6 @@
 import ButtonOutlined from "../../buttons/button.outlined";
 
-export default function MediaText(){
+export default function TextItem(){
   return (
     <div className="flex flex-col justify-start items-center gap-5">
       <h2 className="text-2xl border-b-2 border-b-shadow w-full p-2">

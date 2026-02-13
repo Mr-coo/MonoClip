@@ -2,7 +2,7 @@ import { useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import Navbar from "./components/navbar/navbar";
 import Topbar from "./components/topbar/topbar";
-import Content from "./content/content";
+import Content from "./components/content/content";
 import TimeLine from "./components/timeline/timeline";
 
 function App() {
