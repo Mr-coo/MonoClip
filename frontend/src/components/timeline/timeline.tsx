@@ -1,8 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { useTimelineStore } from "../../store/timeline.store";
+import { FaPlay } from "react-icons/fa6";
+import { FaPause } from "react-icons/fa6";
+import { TiArrowSortedDown } from "react-icons/ti";
 
 export default function Timeline() {
-  const assets = useTimelineStore((state) => state.assets);
+  const { assets, currentTime, isPlaying, togglePlay, setCurrentTime } = useTimelineStore();
   const [timelineHeight, setTimelineHeight] = useState(200);
   const [isResizing, setIsResizing] = useState(false);
   const layers = new Set(assets.map(a=>a.layer))
@@ -42,58 +45,78 @@ export default function Timeline() {
   }, [assets]);
 
   return (
-    <div className="bg-mid w-full overflow-x-auto overflow-y-auto relative border-t border-white/10 px-2" style={{height: `${timelineHeight}px`}}>
-      <div 
-        className="bg-mid hover:bg-primary w-full h-1 cursor-ns-resize transition-colors z-50" 
-        onMouseDown={()=>setIsResizing(true)}
-      />
-      <div className="bg-mid-300 w-full h-8 relative">
-        {Array(200).fill(0).map((_, i)=>{
-          return <div className={`w-px h-${i%10==0?4:2} bg-typography/80 absolute text-xs`} style={{left: `${i*PIXELS_PER_SECOND}px`}}>
-            <div className="absolute top-4 -left-1.5 text-typography">{i%10==0?i:""}</div>
-          </div>
-        })}
+    <div>
+      <div className="w-full relative flex justify-center items-center p-2">
+        <button 
+          className="bg-primary p-3 rounded-4xl hover:bg-primary/80"
+          onClick={togglePlay}
+        >{isPlaying?<FaPause/>:<FaPlay/>}</button>
       </div>
-      <div className="relative h-full min-w-max">
-          {sortedMedias.map((media) => {
-            const left = media.startInTimeLine * PIXELS_PER_SECOND;
-            const width = (media.endTime - (media.startTime || 0)) * PIXELS_PER_SECOND;
-            const top = (media.layer - 1) * LAYER_HEIGHT;
-
-            return (
-              <div
-                key={media.id}
-                className="absolute bg-gray-800 border border-white/10 rounded overflow-hidden h-9"
-                style={{
-                  left: `${left}px`,
-                  top: `${top}px`,
-                  width: `${width}px`,
-                }}
+      <div className="bg-mid w-full overflow-x-auto overflow-y-auto relative border-t border-white/10 px-2" style={{height: `${timelineHeight}px`}}>
+        <div className="group">
+          <div 
+            className="absolute z-11 p-px rounded-4xl -translate-x-1/2 group-hover:bg-primary" 
+            style={{left: `${currentTime*PIXELS_PER_SECOND}px`}}><TiArrowSortedDown size={15}/></div>
+          <div 
+            className="bg-typography w-px h-full absolute z-10 -translate-x-1/2 group-hover:bg-primary group-hover:w-1"
+            style={{left: `${currentTime*PIXELS_PER_SECOND}px`}}></div>
+        </div>
+        <div 
+          className="bg-mid hover:bg-primary w-full h-1 cursor-ns-resize transition-colors z-50" 
+          onMouseDown={()=>setIsResizing(true)}
+        />
+        <div className="bg-mid-300 w-full h-8 relative">
+          {Array(200).fill(0).map((_, i)=>{
+            return(
+              <div 
+                key={i} className={`w-px bg-typography absolute text-xs`} 
+                style={{left: `${i*PIXELS_PER_SECOND}px`, height: `${i%10==0?10:5}px`}}
               >
-                {media.type === "video" ? (
-                  <video
-                    src={media.path} // Ensure this is wrapped in convertFileSrc if using Tauri
-                    className="w-full h-full object-cover opacity-60 hover:opacity-100 transition-opacity"
-                    onLoadedData={(e) => {
-                      // This shows the very first frame of the video
-                      e.currentTarget.currentTime = 0; 
-                    }}
-                    muted
-                    playsInline
-                  />
-                ) : (
-                  <img src={media.path} className="w-full h-full object-cover opacity-60" />
-                )}
+                <div className="absolute top-4 -left-1.5 text-typography">{i%10==0?i:""}</div>
               </div>
-            );
+            )
+            
           })}
-          {[...layers].map((val)=>{
-            console.log(layers)
-            return <div 
-              className="bg-shadow/80 w-full h-px cursor-ns-resize transition-colors z-50 absolute left-0"
-              style={{top: `${val*LAYER_HEIGHT-3}px`}}
-            ></div>
-          })}
+        </div>
+        <div className="relative h-full min-w-max">
+            {sortedMedias.map((media) => {
+              const left = media.startInTimeLine * PIXELS_PER_SECOND;
+              const width = (media.endTime - (media.startTime || 0)) * PIXELS_PER_SECOND;
+              const top = (media.layer - 1) * LAYER_HEIGHT;
+
+              return (
+                <div
+                  key={media.id}
+                  className="absolute bg-gray-800 border border-white/10 rounded overflow-hidden h-9"
+                  style={{
+                    left: `${left}px`,
+                    top: `${top}px`,
+                    width: `${width}px`,
+                  }}
+                >
+                  {media.type === "video" ? (
+                    <video
+                      src={media.path}
+                      className="w-full h-full object-cover opacity-60 hover:opacity-100 transition-opacity"
+                      onLoadedData={(e) => {
+                        e.currentTarget.currentTime = 0; 
+                      }}
+                      muted
+                      playsInline
+                    />
+                  ) : (
+                    <img src={media.path} className="w-full h-full object-cover opacity-60" />
+                  )}
+                </div>
+              );
+            })}
+            {[...layers].map((val)=>{
+              return <div 
+                className="bg-shadow/80 w-full h-px cursor-ns-resize transition-colors z-50 absolute left-0"
+                style={{top: `${val*LAYER_HEIGHT-3}px`}}
+              ></div>
+            })}
+        </div>
       </div>
     </div>
   );

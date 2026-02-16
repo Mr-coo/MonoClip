@@ -4,16 +4,12 @@ import Navbar from "./components/navbar/navbar";
 import Topbar from "./components/topbar/topbar";
 import Content from "./components/content/content";
 import TimeLine from "./components/timeline/timeline";
+import { usePlayback } from "./hook/usePlayback";
 
 function App() {
-  const [greetMsg, setGreetMsg] = useState("");
-  const [name, setName] = useState("");
   const [isShowDetail, setIsShowDetail] = useState<boolean>(true)
 
-  async function greet() {
-    // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-    setGreetMsg(await invoke("greet", { name }));
-  }
+  usePlayback()
 
   return (
     <main className="container w-screen h-screen bg-black overflow-hidden flex justify-between items-center">
