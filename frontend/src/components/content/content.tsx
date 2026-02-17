@@ -6,7 +6,6 @@ export default function Content(){
   const videoRefs = useRef<HTMLElement[]>([]);
 
   useEffect(()=>{
-    console.log(currentTime)
     assets.forEach((asset, i)=>{
       const video = videoRefs.current[i]
       if (!video) return;
@@ -22,10 +21,10 @@ export default function Content(){
           if (isPlaying) video.play();
           else video.pause();
         }
-        else{
-          video.style.display = "none";
-          if(video instanceof HTMLVideoElement) video.pause();
-        }
+      }
+      else{
+        video.style.display = "none";
+        if(video instanceof HTMLVideoElement) video.pause();
       }
     })
   }, [currentTime, isPlaying, assets])

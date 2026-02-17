@@ -1,41 +1,18 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTimelineStore } from "../../store/timeline.store";
 import { FaPlay } from "react-icons/fa6";
 import { FaPause } from "react-icons/fa6";
 import { TiArrowSortedDown } from "react-icons/ti";
+import { MediaAsset } from "../../types/mediaAsset";
+import { useReziseTimeline } from "../../hook/useResizeTimeline";
+import { useEditorStore } from "../../store/editor.store";
 
 export default function Timeline() {
-  const { assets, currentTime, isPlaying, togglePlay, setCurrentTime } = useTimelineStore();
-  const [timelineHeight, setTimelineHeight] = useState(200);
-  const [isResizing, setIsResizing] = useState(false);
+  const { assets, currentTime, isPlaying, togglePlay } = useTimelineStore();
+  const editorStore = useEditorStore()
+  const resizeTimelineHook = useReziseTimeline()
+
   const layers = new Set(assets.map(a=>a.layer))
-
-  const PIXELS_PER_SECOND = 10; 
-  const LAYER_HEIGHT = 42;
-
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!isResizing) return;
-      const newHeight = window.innerHeight - e.clientY;
-      if (newHeight > 100 && newHeight < window.innerHeight * 0.8) {
-        setTimelineHeight(newHeight);
-      }
-    };
-
-    const stopResizing = () => {
-      setIsResizing(false);
-    };
-
-    if (isResizing) {
-      window.addEventListener("mousemove", handleMouseMove);
-      window.addEventListener("mouseup", stopResizing);
-    }
-
-    return () => {
-      window.removeEventListener("mousemove", handleMouseMove);
-      window.removeEventListener("mouseup", stopResizing);
-    };
-  }, [isResizing]);
   
   const sortedMedias = useMemo(() => {
     return [...assets].sort((a, b) => {
@@ -52,42 +29,46 @@ export default function Timeline() {
           onClick={togglePlay}
         >{isPlaying?<FaPause/>:<FaPlay/>}</button>
       </div>
-      <div className="bg-mid w-full overflow-x-auto overflow-y-auto relative border-t border-white/10 px-2" style={{height: `${timelineHeight}px`}}>
+      <div 
+        className="bg-mid w-full overflow-x-auto overflow-y-auto relative border-t border-white/10 px-2" 
+        style={{height: `${editorStore.timelineHeight}px`}}
+      >
         <div className="group">
           <div 
-            className="absolute z-11 p-px rounded-4xl -translate-x-1/2 group-hover:bg-primary" 
-            style={{left: `${currentTime*PIXELS_PER_SECOND}px`}}><TiArrowSortedDown size={15}/></div>
+            className="absolute z-11 p-px rounded-4xl group-hover:bg-primary" 
+            style={{left: `${currentTime*editorStore.pixelPerSecond}px`}}><TiArrowSortedDown size={15}/></div>
           <div 
-            className="bg-typography w-px h-full absolute z-10 -translate-x-1/2 group-hover:bg-primary group-hover:w-1"
-            style={{left: `${currentTime*PIXELS_PER_SECOND}px`}}></div>
+            className="bg-typography w-px h-full absolute z-10 translate-2 group-hover:bg-primary group-hover:w-1 group-hover:translate-1.5"
+            style={{left: `${currentTime*editorStore.pixelPerSecond}px`}}></div>
         </div>
         <div 
           className="bg-mid hover:bg-primary w-full h-1 cursor-ns-resize transition-colors z-50" 
-          onMouseDown={()=>setIsResizing(true)}
+          onPointerDown={resizeTimelineHook.onPointerDown}
+          onPointerMove={resizeTimelineHook.onPointerMove}
+          onPointerUp={resizeTimelineHook.onPointerUp}
         />
         <div className="bg-mid-300 w-full h-8 relative">
           {Array(200).fill(0).map((_, i)=>{
             return(
               <div 
                 key={i} className={`w-px bg-typography absolute text-xs`} 
-                style={{left: `${i*PIXELS_PER_SECOND}px`, height: `${i%10==0?10:5}px`}}
+                style={{left: `${i*editorStore.pixelPerSecond}px`, height: `${i%10==0?10:5}px`}}
               >
                 <div className="absolute top-4 -left-1.5 text-typography">{i%10==0?i:""}</div>
               </div>
             )
-            
           })}
         </div>
         <div className="relative h-full min-w-max">
             {sortedMedias.map((media) => {
-              const left = media.startInTimeLine * PIXELS_PER_SECOND;
-              const width = (media.endTime - (media.startTime || 0)) * PIXELS_PER_SECOND;
-              const top = (media.layer - 1) * LAYER_HEIGHT;
+              const left = media.startInTimeLine * editorStore.pixelPerSecond;
+              const width = (media.endTime - (media.startTime || 0)) * editorStore.pixelPerSecond;
+              const top = (media.layer - 1) * editorStore.layerHeight;
 
               return (
                 <div
                   key={media.id}
-                  className="absolute bg-gray-800 border border-white/10 rounded overflow-hidden h-9"
+                  className="absolute bg-gray-800 border border-white/10 rounded overflow-hidden h-9 opacity-60 hover:opacity-100 transition-opacity"
                   style={{
                     left: `${left}px`,
                     top: `${top}px`,
@@ -97,7 +78,7 @@ export default function Timeline() {
                   {media.type === "video" ? (
                     <video
                       src={media.path}
-                      className="w-full h-full object-cover opacity-60 hover:opacity-100 transition-opacity"
+                      className="w-full h-full object-cover"
                       onLoadedData={(e) => {
                         e.currentTarget.currentTime = 0; 
                       }}
@@ -105,7 +86,7 @@ export default function Timeline() {
                       playsInline
                     />
                   ) : (
-                    <img src={media.path} className="w-full h-full object-cover opacity-60" />
+                    <img src={media.path} className="w-full h-full object-cover" />
                   )}
                 </div>
               );
@@ -113,7 +94,7 @@ export default function Timeline() {
             {[...layers].map((val)=>{
               return <div 
                 className="bg-shadow/80 w-full h-px cursor-ns-resize transition-colors z-50 absolute left-0"
-                style={{top: `${val*LAYER_HEIGHT-3}px`}}
+                style={{top: `${val*editorStore.layerHeight-3}px`}}
               ></div>
             })}
         </div>
