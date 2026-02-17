@@ -17,7 +17,6 @@ export function usePointerDrag(cb: DragCallbacks) {
 
   function onPointerMove(e: React.PointerEvent) {
     if (!e.currentTarget.hasPointerCapture(e.pointerId)) return;
-    console.log(e.clientY, start.current.y)
     cb.onMove?.(
       e.clientX - start.current.x,
       e.clientY - start.current.y,

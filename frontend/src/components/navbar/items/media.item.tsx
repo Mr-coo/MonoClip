@@ -86,6 +86,7 @@ export default function MediaItem(){
         switch (val.type) {
           case "video":
             return <div 
+              key={i}
               className="relative w-32 h-32 rounded group overflow-hidden hover:scale-105 transition-all duration-200 cursor-pointer" 
               onClick={()=> {addAssetTimeline(val)}}
             >

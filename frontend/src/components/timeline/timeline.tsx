@@ -1,17 +1,17 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo } from "react";
 import { useTimelineStore } from "../../store/timeline.store";
 import { FaPlay } from "react-icons/fa6";
 import { FaPause } from "react-icons/fa6";
 import { TiArrowSortedDown } from "react-icons/ti";
-import { MediaAsset } from "../../types/mediaAsset";
 import { useReziseTimeline } from "../../hook/useResizeTimeline";
 import { useEditorStore } from "../../store/editor.store";
+import { useMoveMediaInTimeline } from "../../hook/useMoveMediaInTimeline";
+import { TimelineMedia } from "./TimelineMediaAsset";
 
 export default function Timeline() {
   const { assets, currentTime, isPlaying, togglePlay } = useTimelineStore();
   const editorStore = useEditorStore()
   const resizeTimelineHook = useReziseTimeline()
-
   const layers = new Set(assets.map(a=>a.layer))
   
   const sortedMedias = useMemo(() => {
@@ -60,39 +60,10 @@ export default function Timeline() {
           })}
         </div>
         <div className="relative h-full min-w-max">
-            {sortedMedias.map((media) => {
-              const left = media.startInTimeLine * editorStore.pixelPerSecond;
-              const width = (media.endTime - (media.startTime || 0)) * editorStore.pixelPerSecond;
-              const top = (media.layer - 1) * editorStore.layerHeight;
-
-              return (
-                <div
-                  key={media.id}
-                  className="absolute bg-gray-800 border border-white/10 rounded overflow-hidden h-9 opacity-60 hover:opacity-100 transition-opacity"
-                  style={{
-                    left: `${left}px`,
-                    top: `${top}px`,
-                    width: `${width}px`,
-                  }}
-                >
-                  {media.type === "video" ? (
-                    <video
-                      src={media.path}
-                      className="w-full h-full object-cover"
-                      onLoadedData={(e) => {
-                        e.currentTarget.currentTime = 0; 
-                      }}
-                      muted
-                      playsInline
-                    />
-                  ) : (
-                    <img src={media.path} className="w-full h-full object-cover" />
-                  )}
-                </div>
-              );
-            })}
-            {[...layers].map((val)=>{
+            {sortedMedias.map((media, i) => <TimelineMedia key={i} media={media}/>)}
+            {[...layers].map((val, i)=>{
               return <div 
+                key={i}
                 className="bg-shadow/80 w-full h-px cursor-ns-resize transition-colors z-50 absolute left-0"
                 style={{top: `${val*editorStore.layerHeight-3}px`}}
               ></div>
