@@ -5,7 +5,6 @@ import { FaPause } from "react-icons/fa6";
 import { TiArrowSortedDown } from "react-icons/ti";
 import { useReziseTimeline } from "../../hook/useResizeTimeline";
 import { useEditorStore } from "../../store/editor.store";
-import { useMoveMediaInTimeline } from "../../hook/useMoveMediaInTimeline";
 import { TimelineMedia } from "./TimelineMediaAsset";
 import { useRewindTimeline } from "../../hook/useRewindTimeline";
 
@@ -14,7 +13,7 @@ export default function Timeline() {
   const editorStore = useEditorStore()
   const resizeTimelineHook = useReziseTimeline()
   const rewindTimelineHook = useRewindTimeline()
-  const layersCount = new Set(assets.map(a=>a.layer)).size
+  const layersCount = 10
   
   const sortedMedias = useMemo(() => {
     return [...assets].sort((a, b) => {

@@ -6,6 +6,7 @@ type PreviewState =
       type: "move-media";
       id: string;
       startInTimeLine: number;
+      layer: number;
     }
   | null;
 
@@ -22,7 +23,7 @@ interface TimeLineState {
   setCurrentTime: (time: number) => void;
   togglePlay: () => void;
 
-  previewMoveMedia: (id: string, start: number) => void;
+  previewMoveMedia: (id: string, nextDx: number, nextDy: number) => void;
   commit: () => void;
   cancelPreview: () => void;
 }
@@ -65,12 +66,13 @@ export const useTimelineStore = create<TimeLineState>((set) => ({
     set((state) => ({ isPlaying: !state.isPlaying })),
 
 
-  previewMoveMedia: (id, start) =>
+  previewMoveMedia: (id, nextDx, nextDy) =>
     set({
       preview: {
         type: "move-media",
         id,
-        startInTimeLine: start,
+        startInTimeLine: nextDx,
+        layer: nextDy
       },
     }),
 
@@ -80,12 +82,12 @@ export const useTimelineStore = create<TimeLineState>((set) => ({
       if (!state.preview) return state;
 
       if (state.preview.type === "move-media") {
-        const { id, startInTimeLine } = state.preview;
+        const { id, startInTimeLine, layer } = state.preview;
 
         return {
           assets: state.assets.map((a) =>
             a.id === id
-              ? { ...a, startInTimeLine }
+              ? { ...a, startInTimeLine, layer }
               : a
           ),
           preview: null,

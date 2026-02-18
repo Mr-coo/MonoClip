@@ -8,6 +8,7 @@ export function useMoveMediaInTimeline(mediaId: string) {
   const editorStore = useEditorStore();
 
   const startRef = useRef(0);
+  const layerRef = useRef(1);
 
   return usePointerDrag({
     onStart() {
@@ -15,13 +16,13 @@ export function useMoveMediaInTimeline(mediaId: string) {
       if (!media) return;
 
       startRef.current = media.startInTimeLine;
+      layerRef.current = media.layer
     },
 
-    onMove(dx) {
-      const dt = dx / editorStore.pixelPerSecond;
-      const next = Math.max(0, startRef.current + dt);
-
-      timelineStore.previewMoveMedia(mediaId, next);
+    onMove(dx, dy) {
+      const nextDx = Math.max(0, startRef.current + dx / editorStore.pixelPerSecond);
+      const nextDy = Math.max(1, layerRef.current + Math.round(dy / editorStore.layerHeight))
+      timelineStore.previewMoveMedia(mediaId, nextDx, nextDy);
     },
 
     onEnd() {
