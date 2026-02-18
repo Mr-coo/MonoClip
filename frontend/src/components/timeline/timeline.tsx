@@ -7,12 +7,14 @@ import { useReziseTimeline } from "../../hook/useResizeTimeline";
 import { useEditorStore } from "../../store/editor.store";
 import { useMoveMediaInTimeline } from "../../hook/useMoveMediaInTimeline";
 import { TimelineMedia } from "./TimelineMediaAsset";
+import { useRewindTimeline } from "../../hook/useRewindTimeline";
 
 export default function Timeline() {
   const { assets, currentTime, isPlaying, togglePlay } = useTimelineStore();
   const editorStore = useEditorStore()
   const resizeTimelineHook = useReziseTimeline()
-  const layers = new Set(assets.map(a=>a.layer))
+  const rewindTimelineHook = useRewindTimeline()
+  const layersCount = new Set(assets.map(a=>a.layer)).size
   
   const sortedMedias = useMemo(() => {
     return [...assets].sort((a, b) => {
@@ -33,7 +35,12 @@ export default function Timeline() {
         className="bg-mid w-full overflow-x-auto overflow-y-auto relative border-t border-white/10 px-2" 
         style={{height: `${editorStore.timelineHeight}px`}}
       >
-        <div className="group">
+        <div 
+          className="group"
+          onPointerDown={rewindTimelineHook.onPointerDown}
+          onPointerMove={rewindTimelineHook.onPointerMove}
+          onPointerUp={rewindTimelineHook.onPointerUp}
+        >
           <div 
             className="absolute z-11 p-px rounded-4xl group-hover:bg-primary" 
             style={{left: `${currentTime*editorStore.pixelPerSecond}px`}}><TiArrowSortedDown size={15}/></div>
@@ -61,11 +68,11 @@ export default function Timeline() {
         </div>
         <div className="relative h-full min-w-max">
             {sortedMedias.map((media, i) => <TimelineMedia key={i} media={media}/>)}
-            {[...layers].map((val, i)=>{
+            {Array(layersCount).fill(0).map((_, i)=>{
               return <div 
-                key={i}
+                key={(i+1)}
                 className="bg-shadow/80 w-full h-px cursor-ns-resize transition-colors z-50 absolute left-0"
-                style={{top: `${val*editorStore.layerHeight-3}px`}}
+                style={{top: `${(i+1)*editorStore.layerHeight-3}px`}}
               ></div>
             })}
         </div>

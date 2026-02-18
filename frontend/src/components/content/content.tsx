@@ -12,7 +12,7 @@ export default function Content(){
 
       const localTime = currentTime - asset.startInTimeLine;
       const isVisible = currentTime >= asset.startInTimeLine && 
-                        currentTime <= asset.endTime;
+                        currentTime <= asset.startInTimeLine + asset.endTime;
       if(isVisible){
         video.style.display = 'block'
 
