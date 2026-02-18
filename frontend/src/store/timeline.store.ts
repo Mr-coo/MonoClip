@@ -1,12 +1,13 @@
 import { create } from "zustand";
 import { MediaAsset } from "../types/mediaAsset";
+import { PreviewStateType } from "../enum/previewStateType.enum";
 
 type PreviewState =
   | {
-      type: "move-media";
+      type: PreviewStateType;
       id: string;
-      startInTimeLine: number;
-      layer: number;
+      x: number;
+      y: number;
     }
   | null;
 
@@ -23,7 +24,7 @@ interface TimeLineState {
   setCurrentTime: (time: number) => void;
   togglePlay: () => void;
 
-  previewMoveMedia: (id: string, nextDx: number, nextDy: number) => void;
+  previewMoveMedia: (id: string, type: PreviewStateType, nextDx: number, nextDy: number) => void;
   commit: () => void;
   cancelPreview: () => void;
 }
@@ -66,13 +67,13 @@ export const useTimelineStore = create<TimeLineState>((set) => ({
     set((state) => ({ isPlaying: !state.isPlaying })),
 
 
-  previewMoveMedia: (id, nextDx, nextDy) =>
+  previewMoveMedia: (id, type, nextDx, nextDy) =>
     set({
       preview: {
-        type: "move-media",
-        id,
-        startInTimeLine: nextDx,
-        layer: nextDy
+        id: id,
+        type: type,
+        x: nextDx,
+        y: nextDy
       },
     }),
 
@@ -81,19 +82,29 @@ export const useTimelineStore = create<TimeLineState>((set) => ({
     set((state) => {
       if (!state.preview) return state;
 
-      if (state.preview.type === "move-media") {
-        const { id, startInTimeLine, layer } = state.preview;
+      if (state.preview.type === PreviewStateType.EDIT_MEDIA_TIME) {
+        const { id, x, y } = state.preview;
 
         return {
           assets: state.assets.map((a) =>
             a.id === id
-              ? { ...a, startInTimeLine, layer }
+              ? { ...a, startInTimeLine:x, layer:y }
               : a
           ),
           preview: null,
         };
       }
-
+      else if(state.preview.type === PreviewStateType.EDIT_MEDIA_POSITION){
+        const { id, x, y } = state.preview;
+        return {
+          assets: state.assets.map((a) =>
+            a.id === id
+              ? { ...a, x:x, y:y }
+              : a
+          ),
+          preview: null,
+        };
+      }
       return state;
     }),
 
