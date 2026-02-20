@@ -18,7 +18,7 @@ export default function MediaItem(){
 
     if(['mp4', 'mov', 'avi', 'mkv', 'wmv', 'flv', 'webm'].includes(extension)) return "video"
     else if(['mp3', 'wav'].includes(extension)) return "audio"
-    else if(['png', 'jpg'].includes(extension)) return "img"
+    else if(['png', 'jpg', 'jpeg'].includes(extension)) return "img"
 
     return "";
   }
@@ -63,7 +63,7 @@ export default function MediaItem(){
       filters: [
         {
           name: "Media",
-          extensions: ["mp4", "mov", "mkv", "mp3", "wav", "png", "jpg"]
+          extensions: ["mp4", "mov", "mkv", "mp3", "wav", "png", "jpg", 'jpeg']
         }
       ]
     });
@@ -97,7 +97,8 @@ export default function MediaItem(){
               <video src={val.path} className="w-32 h-32 rounded object-cover"/>
             </div>
           case "img":
-            return <div 
+            return <div
+              key={i}
               className="relative w-32 h-32 rounded group overflow-hidden hover:scale-105 transition-all duration-200 cursor-pointer" 
               onClick={()=> {addAssetTimeline(val)}}
             >
@@ -109,6 +110,7 @@ export default function MediaItem(){
             </div>
           case "audio":
             return <div 
+              key={i}
               className="w-32 h-32 rounded object-cover bg-white/10 flex items-center justify-center flex-col hover:scale-105 transition-all duration-200 cursor-pointer" 
               onClick={()=> {addAssetTimeline(val)}}
             >

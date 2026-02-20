@@ -31,7 +31,11 @@ export function TimelineMedia({ media }: { media: MediaAsset }) {
           playsInline
         />
       ) : (
-        <img src={media.path} className="w-full h-full object-cover" />
+        media.type === "img" ? (
+          <img src={media.path} className="w-full h-full object-cover" draggable={false}/>
+        ) : (
+          <div className="w-full h-full bg-base"><p className="text-xs p-2 select-none">♪ {media.name} ♪</p></div>
+        )
       )}
     </div>
   );

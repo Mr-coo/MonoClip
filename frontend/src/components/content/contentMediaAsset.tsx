@@ -7,39 +7,61 @@ export function ContentMediaAsset({asset}: {asset:MediaAsset}){
   const moveMedia = useMoveMediaInContent(asset.id)
   const { currentTime, isPlaying } = useTimelineStore();
 
-  const videoRef = useRef<HTMLElement>(null);
+  const mediaRef = useRef<HTMLVideoElement | HTMLImageElement | HTMLAudioElement>(null);
 
   useEffect(()=>{
-    const video = videoRef.current
-    if (!video) return;
+    const media = mediaRef.current
+    if (!media) return;
 
-    const localTime = currentTime - asset.startInTimeLine;
     const isVisible = currentTime >= asset.startInTimeLine && 
                       currentTime <= asset.startInTimeLine + asset.endTime;
 
     if(isVisible){
-      video.style.display = 'block'
+      media.style.display = 'block'
 
-      if(video instanceof HTMLVideoElement){
-        if (Math.abs(video.currentTime - localTime) > 0.1) video.currentTime = localTime;
-        if (isPlaying) video.play();
-        else video.pause();
+      if(media instanceof HTMLVideoElement || media instanceof HTMLAudioElement){
+        const localTime = currentTime - asset.startInTimeLine;
+        if (Math.abs(media.currentTime - localTime) > 0.1) media.currentTime = localTime;
+        if (isPlaying) media.play();
+        else media.pause();
       }
     }
     else{
-      video.style.display = "none";
-      if(video instanceof HTMLVideoElement) video.pause();
+      media.style.display = "none";
+      if(media instanceof HTMLVideoElement) media.pause();
     }
   }, [currentTime, isPlaying, asset])
   return (
-    <video 
-      ref={videoRef}
-      src={asset.path}
-      className="absolute box-border hover:border-2 hover:border-constrast"
-      style={{zIndex: asset.layer, top: asset.y, left: asset.x}}
-      onPointerDown={moveMedia.onPointerDown}
-      onPointerMove={moveMedia.onPointerMove}
-      onPointerUp={moveMedia.onPointerUp}
-    ></video>
+  <>
+    {asset.type=="img"
+      ? (<img 
+        ref={mediaRef}
+        src={asset.path}
+        draggable={false}
+        className="absolute box-border hover:border-2 hover:border-constrast h-full"
+        style={{zIndex: asset.layer, top: asset.y, left: asset.x}}
+        onPointerDown={moveMedia.onPointerDown}
+        onPointerMove={moveMedia.onPointerMove}
+        onPointerUp={moveMedia.onPointerUp}
+        />
+      ) :( asset.type=="video"
+      ? (<video 
+          ref={mediaRef}
+          src={asset.path}
+          className="absolute box-border hover:border-2 hover:border-constrast h-full"
+          style={{zIndex: asset.layer, top: asset.y, left: asset.x}}
+          onPointerDown={moveMedia.onPointerDown}
+          onPointerMove={moveMedia.onPointerMove}
+          onPointerUp={moveMedia.onPointerUp}
+        ></video>
+      ) : (
+        <audio 
+          ref={mediaRef}
+          src={asset.path}
+          className="hidden"
+        ></audio>
+      ))
+    }
+  </>
   )
 }
