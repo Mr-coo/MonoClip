@@ -2,26 +2,25 @@ import { useRef } from "react";
 import { useTimelineStore } from "../store/timeline.store";
 import { usePointerDrag } from "./usePointerDrag";
 import { PreviewStateType } from "../enum/previewStateType.enum";
+import { useEditorStore } from "../store/editor.store";
 
-export function useMoveMediaInContent(mediaId: string) {
+export function useResizeMediaInTimeline(mediaId: string) {
   const timelineStore = useTimelineStore();
+  const editorStore = useEditorStore();
 
-  const xRef = useRef(0);
-  const yRef = useRef(0);
+  const endTimeRef = useRef(0);
 
   return usePointerDrag({
     onStart() {
       const media = timelineStore.assets.find(a => a.id === mediaId);
       if (!media) return;
 
-      xRef.current = media.x;
-      yRef.current = media.y;
+      endTimeRef.current = media.endTime;
     },
 
-    onMove(dx, dy) {
-      const nextDx = Math.max(0, xRef.current + dx);
-      const nextDy = Math.max(1, yRef.current + dy);
-      timelineStore.previewMoveMedia(mediaId, PreviewStateType.EDIT_MEDIA_POSITION, nextDx, nextDy);
+    onMove(dx, _) {
+      const nextDx = Math.max(0, endTimeRef.current + dx / editorStore.pixelPerSecond);
+      timelineStore.previewMoveMedia(mediaId, PreviewStateType.EDIT_MEDIA_ENDTIME, nextDx, 0);
     },
 
     onEnd() {

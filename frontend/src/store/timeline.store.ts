@@ -35,7 +35,6 @@ export const useTimelineStore = create<TimeLineState>((set) => ({
   isPlaying: false,
   preview: null,
 
-
   addAsset: (asset) => {
     set((state) => {
       const maxLayer = state.assets.reduce(
@@ -81,10 +80,8 @@ export const useTimelineStore = create<TimeLineState>((set) => ({
   commit: () =>
     set((state) => {
       if (!state.preview) return state;
-
+      const { id, x, y } = state.preview;
       if (state.preview.type === PreviewStateType.EDIT_MEDIA_TIME) {
-        const { id, x, y } = state.preview;
-
         return {
           assets: state.assets.map((a) =>
             a.id === id
@@ -95,11 +92,20 @@ export const useTimelineStore = create<TimeLineState>((set) => ({
         };
       }
       else if(state.preview.type === PreviewStateType.EDIT_MEDIA_POSITION){
-        const { id, x, y } = state.preview;
         return {
           assets: state.assets.map((a) =>
             a.id === id
               ? { ...a, x:x, y:y }
+              : a
+          ),
+          preview: null,
+        };
+      }
+      else if(state.preview.type === PreviewStateType.EDIT_MEDIA_ENDTIME){
+        return {
+          assets: state.assets.map((a) =>
+            a.id === id
+              ? { ...a, endTime:x }
               : a
           ),
           preview: null,
