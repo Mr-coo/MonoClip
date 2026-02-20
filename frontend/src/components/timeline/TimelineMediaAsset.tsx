@@ -6,10 +6,11 @@ import { MediaAsset } from "../../types/mediaAsset";
 export function TimelineMedia({ media }: { media: MediaAsset }) {
   const editorStore = useEditorStore();
   const moveMedia = useMoveMediaInTimeline(media.id);
-  const resizeMedia = useResizeMediaInTimeline(media.id);
+  const resizeLeftMedia = useResizeMediaInTimeline(media.id, true);
+  const resizeRightMedia = useResizeMediaInTimeline(media.id, false);
 
   const left = media.startInTimeLine * editorStore.pixelPerSecond;
-  const dragDurationLeft = (media.startInTimeLine+media.endTime) * editorStore.pixelPerSecond;
+  const dragDurationLeft = (media.startInTimeLine+media.endTime-media.startTime) * editorStore.pixelPerSecond;
   const width =
     (media.endTime - (media.startTime || 0)) *
     editorStore.pixelPerSecond;
@@ -46,10 +47,18 @@ export function TimelineMedia({ media }: { media: MediaAsset }) {
         className="w-1 h-9 absolute hover:bg-typography rounded-2xl transition-all duration-200"
         draggable={false}
         style={{ left:`${dragDurationLeft-4}px`, top }}
-        onPointerDown={resizeMedia.onPointerDown}
-        onPointerMove={resizeMedia.onPointerMove}
-        onPointerUp={resizeMedia.onPointerUp}
+        onPointerDown={resizeRightMedia.onPointerDown}
+        onPointerMove={resizeRightMedia.onPointerMove}
+        onPointerUp={resizeRightMedia.onPointerUp}
       ></div>
+      {media.type!=="img"?(<div 
+        className="w-1 h-9 absolute hover:bg-typography rounded-2xl transition-all duration-200"
+        draggable={false}
+        style={{ left:`${left}px`, top }}
+        onPointerDown={resizeLeftMedia.onPointerDown}
+        onPointerMove={resizeLeftMedia.onPointerMove}
+        onPointerUp={resizeLeftMedia.onPointerUp}
+      ></div>):(<></>)}
     </div>
   );
 }

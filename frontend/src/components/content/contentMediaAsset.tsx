@@ -20,7 +20,7 @@ export function ContentMediaAsset({asset}: {asset:MediaAsset}){
       media.style.display = 'block'
 
       if(media instanceof HTMLVideoElement || media instanceof HTMLAudioElement){
-        const localTime = currentTime - asset.startInTimeLine;
+        const localTime = currentTime - asset.startInTimeLine + asset.startTime;
         if (Math.abs(media.currentTime - localTime) > 0.1) media.currentTime = localTime;
         if (isPlaying) media.play();
         else media.pause();

@@ -101,11 +101,21 @@ export const useTimelineStore = create<TimeLineState>((set) => ({
           preview: null,
         };
       }
-      else if(state.preview.type === PreviewStateType.EDIT_MEDIA_ENDTIME){
+      else if(state.preview.type === PreviewStateType.EDIT_MEDIA_END_TIME){
         return {
           assets: state.assets.map((a) =>
             a.id === id
               ? { ...a, endTime:x }
+              : a
+          ),
+          preview: null,
+        };
+      }
+      else if(state.preview.type === PreviewStateType.EDIT_MEDIA_START_TIME){
+        return {
+          assets: state.assets.map((a) =>
+            a.id === id
+              ? { ...a, startTime:x, startInTimeLine:y }
               : a
           ),
           preview: null,
