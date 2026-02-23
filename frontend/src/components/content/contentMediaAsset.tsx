@@ -47,28 +47,41 @@ export function ContentMediaAsset({ asset }: { asset: MediaAsset }) {
     zIndex: asset.layer,
   };
 
+
   if (asset.type === "img") {
     return (
-      <img
-        ref={mediaRef}
-        src={asset.path}
-        draggable={false}
-        style={style}
-        className="box-border hover:border-2 hover:border-constrast"
-        {...moveMedia}
-      />
+      <div className="group">
+        <img
+          ref={mediaRef}
+          src={asset.path}
+          draggable={false}
+          style={style}
+          className="box-border group-hover:border-2 group-hover:border-constrast"
+          {...moveMedia}
+        />
+        <div className="hidden group-hover:block absolute bg-typography shadow-2xl rounded-4xl w-12 h-12" style={{top: asset.y-24, left: asset.x-24, zIndex: 100}}/>
+        <div className="hidden group-hover:block absolute bg-typography shadow-2xl rounded-4xl w-12 h-12" style={{top: asset.y+asset.height-24, left: asset.x-24, zIndex: 100}}/>
+        <div className="hidden group-hover:block absolute bg-typography shadow-2xl rounded-4xl w-12 h-12" style={{top: asset.y-24, left: asset.x+asset.width-24, zIndex: 100}}/>
+        <div className="hidden group-hover:block absolute bg-typography shadow-2xl rounded-4xl w-12 h-12" style={{top: asset.y+asset.height-24, left: asset.x+asset.width-24, zIndex: 100}}/>
+      </div>
     );
   }
 
   if (asset.type === "video") {
     return (
-      <video
-        ref={mediaRef}
-        src={asset.path}
-        style={style}
-        className="box-border hover:border-2 hover:border-constrast"
-        {...moveMedia}
-      />
+      <div className="group">
+        <video
+          ref={mediaRef}
+          src={asset.path}
+          style={style}
+          className="box-border hover:border-2 hover:border-constrast"
+          {...moveMedia}
+        />
+        <div className="hidden group-hover:block absolute bg-typography shadow-2xl rounded-4xl w-12 h-12" style={{top: asset.y-24, left: asset.x-24, zIndex: 100}}/>
+        <div className="hidden group-hover:block absolute bg-typography shadow-2xl rounded-4xl w-12 h-12" style={{top: asset.y+asset.height-24, left: asset.x-24, zIndex: 100}}/>
+        <div className="hidden group-hover:block absolute bg-typography shadow-2xl rounded-4xl w-12 h-12" style={{top: asset.y-24, left: asset.x+asset.width-24, zIndex: 100}}/>
+        <div className="hidden group-hover:block absolute bg-typography shadow-2xl rounded-4xl w-12 h-12" style={{top: asset.y+asset.height-24, left: asset.x+asset.width-24, zIndex: 100}}/>
+      </div>
     );
   }
 
