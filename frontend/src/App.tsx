@@ -12,7 +12,7 @@ function App() {
   usePlayback()
 
   return (
-    <main className="container w-screen h-screen bg-black overflow-hidden flex justify-between items-center">
+    <main className="w-screen h-screen bg-black overflow-hidden flex justify-between items-center">
       <Navbar isShowDetail={isShowDetail} setIsShowDetail={setIsShowDetail}/>
       <div className={`h-screen bg-base text-typography flex justify-between flex-col ${isShowDetail?"w-[calc(100vw-400px)]":"w-[calc(100vw-20px)] transition-all duration-200"}`}>
         <Topbar/>
