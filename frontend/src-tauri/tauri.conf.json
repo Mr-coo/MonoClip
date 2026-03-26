@@ -26,6 +26,9 @@
     }
   },
   "bundle": {
+    "resources": [
+      "ffmpeg/ffmpeg.exe"
+    ],
     "active": true,
     "targets": "all",
     "icon": [

@@ -1,5 +1,6 @@
 import { useState } from "react"
 import ButtonFilled from "../buttons/button.filled"
+import { invoke } from "@tauri-apps/api/core"
 
 export default function Topbar(){
   const [fileName, setFileName] = useState("text")
@@ -12,7 +13,10 @@ export default function Topbar(){
       <p>{scale}%</p>
       <div className="flex items-center gap-5">
         <div className="w-25">
-          <ButtonFilled label="Export" onClick={()=>{}}/>
+          <ButtonFilled label="Export" onClick={async ()=>{
+            const data = await invoke('trim_video')
+            console.log(data)
+          }}/>
         </div>
         <p>{ratio}</p>
       </div>
