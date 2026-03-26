@@ -3,4 +3,5 @@ export enum PreviewStateType{
   EDIT_MEDIA_TIME,
   EDIT_MEDIA_END_TIME,
   EDIT_MEDIA_START_TIME,
+  EDIT_MEDIA_SIZE,
 }

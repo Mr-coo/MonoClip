@@ -8,6 +8,8 @@ type PreviewState =
       id: string;
       x: number;
       y: number;
+      width?: number;
+      height?: number;
     }
   | null;
 
@@ -25,6 +27,7 @@ interface TimeLineState {
   togglePlay: () => void;
 
   previewMoveMedia: (id: string, type: PreviewStateType, nextDx: number, nextDy: number) => void;
+  previewResizeMedia: (id: string, type: PreviewStateType, width: number, height: number, x: number, y: number) => void;
   commit: () => void;
   cancelPreview: () => void;
 }
@@ -76,6 +79,18 @@ export const useTimelineStore = create<TimeLineState>((set) => ({
       },
     }),
 
+  previewResizeMedia: (id, type, width, height, x, y) =>
+    set({
+      preview: {
+        id: id,
+        type: type,
+        x: x,
+        y: y,
+        width: width,
+        height: height,
+      },
+    }),
+
 
   commit: () =>
     set((state) => {
@@ -116,6 +131,17 @@ export const useTimelineStore = create<TimeLineState>((set) => ({
           assets: state.assets.map((a) =>
             a.id === id
               ? { ...a, startTime:x, startInTimeLine:y }
+              : a
+          ),
+          preview: null,
+        };
+      }
+      else if(state.preview.type === PreviewStateType.EDIT_MEDIA_SIZE){
+        const { width, height } = state.preview;
+        return {
+          assets: state.assets.map((a) =>
+            a.id === id
+              ? { ...a, width: width || a.width, height: height || a.height, x: x, y: y }
               : a
           ),
           preview: null,

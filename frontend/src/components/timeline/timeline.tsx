@@ -31,7 +31,7 @@ export default function Timeline() {
         >{isPlaying?<FaPause/>:<FaPlay/>}</button>
       </div>
       <div 
-        className="bg-mid w-full overflow-x-auto overflow-y-auto relative border-t border-white/10 px-2" 
+        className="bg-mid w-full overflow-x-auto overflow-y-auto relative border-t border-white/10 px-2 no-scrollbar" 
         style={{height: `${editorStore.timelineHeight}px`}}
       >
         <div 
