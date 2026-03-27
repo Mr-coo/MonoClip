@@ -1,10 +1,16 @@
 use std::process::Command;
+use tauri::{Manager, AppHandle};
 
 pub async fn run(args: Vec<String>) -> Result<(), String> {
-    let status = Command::new("ffmpeg")
+    let ffmpeg_path = std::path::PathBuf::from("ffmpeg/ffmpeg.exe");
+
+    if !ffmpeg_path.exists() {
+        return Err("ffmpeg.exe NOT FOUND".into());
+    }
+
+    let status = Command::new(ffmpeg_path)
         .args(args)
         .status()
-        .await
         .map_err(|e| e.to_string())?;
 
     if !status.success() {
