@@ -7,7 +7,7 @@ use crate::models::request::MediaAsset;
 
 #[tauri::command]
 fn export_video(media_assets: Vec<MediaAsset>) {
-    format!("Received {} data entries. Processing complete.", media_assets.len());
+    println!("Received {} data entries. Processing complete.", media_assets.len());
     return;
 }
 
