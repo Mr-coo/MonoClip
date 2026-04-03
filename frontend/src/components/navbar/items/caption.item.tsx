@@ -1,9 +1,9 @@
-import { MdOutlineCloudUpload } from "react-icons/md";
 import { FaClosedCaptioning } from "react-icons/fa";
 import { MdSubtitles } from "react-icons/md";
 import { MdDelete } from "react-icons/md";
 import { FiDownload } from "react-icons/fi";
 import { MdTranslate } from "react-icons/md";
+import { MdFilterAlt } from "react-icons/md";
 import { useMemo, useState } from "react";
 import ButtonOutlined from "../../buttons/button.outlined";
 import { useMediaStore } from "../../../store/media.store";
@@ -37,8 +37,9 @@ function formatSeconds(seconds: number): string {
 
 export default function CaptionItem(){
   const assets = useMediaStore((state) => state.assets);
-  const [isLoading, setIsLoading] = useState(false);
+  const [activeAction, setActiveAction] = useState<"auto" | "filter" | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [rawCaptionResult, setRawCaptionResult] = useState<TranscriptionResponse | null>(null);
   const [captionResult, setCaptionResult] = useState<TranscriptionResponse | null>(null);
 
   const latestTranscribableAsset = useMemo(
@@ -53,7 +54,7 @@ export default function CaptionItem(){
     }
 
     setError(null);
-    setIsLoading(true);
+    setActiveAction("auto");
 
     try {
       const mediaResponse = await fetch(latestTranscribableAsset.path);
@@ -88,11 +89,54 @@ export default function CaptionItem(){
       }
 
       const data = (await response.json()) as TranscriptionResponse;
+      setRawCaptionResult(data);
       setCaptionResult(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error when generating captions.");
     } finally {
-      setIsLoading(false);
+      setActiveAction(null);
+    }
+  }
+
+  async function handleFilterCaption(): Promise<void> {
+    const sourceCaption = rawCaptionResult ?? captionResult;
+
+    if (!sourceCaption) {
+      setError("Generate caption dulu sebelum filter badwords.");
+      return;
+    }
+
+    setError(null);
+    setActiveAction("filter");
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/caption/filter`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(sourceCaption),
+      });
+
+      if (!response.ok) {
+        let message = "Filter request failed.";
+        try {
+          const errorBody = (await response.json()) as { detail?: string };
+          if (errorBody.detail) {
+            message = errorBody.detail;
+          }
+        } catch {
+          // Keep default message when error response is not JSON.
+        }
+        throw new Error(message);
+      }
+
+      const data = (await response.json()) as TranscriptionResponse;
+      setCaptionResult(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unknown error when filtering captions.");
+    } finally {
+      setActiveAction(null);
     }
   }
 
@@ -120,18 +164,22 @@ export default function CaptionItem(){
       <button
         className="text-[10px] flex flex-col justify-center items-center gap-1 bg-shadow px-4 py-2 rounded hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
         onClick={handleAutoCaption}
-        disabled={isLoading}
+        disabled={activeAction !== null}
       >
         <FaClosedCaptioning size={20}/>
-        {isLoading ? "Running..." : "Auto"}
+        {activeAction === "auto" ? "Running..." : "Auto"}
       </button>
       <button className="text-[10px] flex flex-col justify-center items-center gap-1 bg-shadow px-4 py-2 rounded hover:opacity-90">
         <MdSubtitles size={20}/>
         Manual
       </button>
-      <button className="text-[10px] flex flex-col justify-center items-center gap-1 bg-shadow px-4 py-2 rounded hover:opacity-90">
-        <MdOutlineCloudUpload size={20}/> 
-        Upload
+      <button
+        className="text-[10px] flex flex-col justify-center items-center gap-1 bg-shadow px-4 py-2 rounded hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
+        onClick={handleFilterCaption}
+        disabled={activeAction !== null || (!rawCaptionResult && !captionResult)}
+      >
+        <MdFilterAlt size={20}/>
+        {activeAction === "filter" ? "Filtering..." : "Filter"}
       </button>
     </div>
 
