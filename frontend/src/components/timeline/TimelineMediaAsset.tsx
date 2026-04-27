@@ -42,6 +42,10 @@ export function TimelineMedia({ media }: { media: MediaAsset }) {
         ) : (
           media.type === "img" ? (
             <img src={media.path} className="w-full h-full object-cover" draggable={false}/>
+          ) : media.type === "text" ? (
+            <div className="w-full h-full bg-gradient-to-r from-violet-900 to-indigo-900 flex items-center px-2">
+              <p className="text-xs text-white/80 truncate select-none">T  {media.textStyle?.content ?? 'Text'}</p>
+            </div>
           ) : (
             <div className="w-full h-full bg-base"><p className="text-xs p-2 select-none">♪ {media.name} ♪</p></div>
           )

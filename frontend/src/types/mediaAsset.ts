@@ -1,3 +1,5 @@
+import { TextStyle } from './textStyle';
+
 export interface MediaAsset {
   id: string;
   type: string;
@@ -11,6 +13,7 @@ export interface MediaAsset {
   y: number;
   width: number;
   height: number;
+  textStyle?: TextStyle;
 }
 
 export const DEFAULT_MEDIA_ASSET_SETTINGS: MediaAsset = {

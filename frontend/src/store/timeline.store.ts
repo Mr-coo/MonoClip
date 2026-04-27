@@ -29,6 +29,7 @@ interface TimeLineState {
   selectAsset: (id: string | null) => void;
   cutAsset: () => void;
 
+  updateAsset: (id: string, updates: Partial<MediaAsset>) => void;
   previewMoveMedia: (id: string, type: PreviewStateType, nextDx: number, nextDy: number) => void;
   previewResizeMedia: (id: string, type: PreviewStateType, width: number, height: number, x: number, y: number) => void;
   commit: () => void;
@@ -101,6 +102,11 @@ export const useTimelineStore = create<TimeLineState>((set) => ({
       };
     }),
 
+
+  updateAsset: (id, updates) =>
+    set((state) => ({
+      assets: state.assets.map((a) => (a.id === id ? { ...a, ...updates } : a)),
+    })),
 
   previewMoveMedia: (id, type, nextDx, nextDy) =>
     set({
