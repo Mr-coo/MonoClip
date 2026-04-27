@@ -1,4 +1,4 @@
-#[derive(serde::Deserialize)]
+#[derive(serde::Deserialize, Debug, Clone)]
 pub struct MediaAsset {
     pub id: String,
     #[serde(rename = "type")]
