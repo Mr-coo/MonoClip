@@ -1,0 +1,35 @@
+{
+  "language": "en",
+  "segments": [
+    {
+      "id": 1,
+      "start": 0.0,
+      "end": 10.5,
+      "text": "Hey there! My name is Larry. I am an English teacher with PSOL and TUIL certificates, which means I'm qualified to teach kids, young professionals, and even adults."
+    },
+    {
+      "id": 2,
+      "start": 10.5,
+      "end": 18.0,
+      "text": "Besides teaching, I do public speaking for five years now. During my spare time, I do vlogging and video editing."
+    },
+    {
+      "id": 3,
+      "start": 18.0,
+      "end": 23.0,
+      "text": "I studied five languages so I know how to help you widen your vocabulary."
+    },
+    {
+      "id": 4,
+      "start": 23.0,
+      "end": 33.0,
+      "text": "I can dance, act, and sing too, making sure that all my lessons are interesting, interactive, and informative."
+    },
+    {
+      "id": 5,
+      "start": 33.0,
+      "end": 37.0,
+      "text": "So come and book a class with me. See you!"
+    }
+  ]
+}
