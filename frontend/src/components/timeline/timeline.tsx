@@ -1,7 +1,6 @@
 import { useMemo } from "react";
 import { useTimelineStore } from "../../store/timeline.store";
-import { FaPlay } from "react-icons/fa6";
-import { FaPause } from "react-icons/fa6";
+import { FaPlay, FaPause, FaScissors } from "react-icons/fa6";
 import { TiArrowSortedDown } from "react-icons/ti";
 import { useReziseTimeline } from "../../hook/useResizeTimeline";
 import { useEditorStore } from "../../store/editor.store";
@@ -9,7 +8,7 @@ import { TimelineMedia } from "./TimelineMediaAsset";
 import { useRewindTimeline } from "../../hook/useRewindTimeline";
 
 export default function Timeline() {
-  const { assets, currentTime, isPlaying, togglePlay } = useTimelineStore();
+  const { assets, currentTime, isPlaying, selectedAssetId, togglePlay, cutAsset, selectAsset } = useTimelineStore();
   const editorStore = useEditorStore()
   const resizeTimelineHook = useReziseTimeline()
   const rewindTimelineHook = useRewindTimeline()
@@ -24,11 +23,17 @@ export default function Timeline() {
 
   return (
     <div>
-      <div className="w-full relative flex justify-center items-center p-2">
-        <button 
+      <div className="w-full relative flex justify-center items-center gap-2 p-2">
+        <button
           className="bg-primary p-3 rounded-4xl hover:bg-primary/80"
           onClick={togglePlay}
         >{isPlaying?<FaPause/>:<FaPlay/>}</button>
+        <button
+          className={`p-3 rounded-4xl transition-colors ${selectedAssetId ? "bg-primary hover:bg-primary/80" : "bg-white/10 text-white/30 cursor-not-allowed"}`}
+          onClick={cutAsset}
+          disabled={!selectedAssetId}
+          title="Cut selected asset at playhead"
+        ><FaScissors /></button>
       </div>
       <div 
         className="bg-mid w-full overflow-x-auto overflow-y-auto relative border-t border-white/10 px-2 no-scrollbar" 
@@ -65,7 +70,7 @@ export default function Timeline() {
             )
           })}
         </div>
-        <div className="relative h-full min-w-max">
+        <div className="relative h-full min-w-max" onClick={() => selectAsset(null)}>
             {sortedMedias.map((media, i) => <TimelineMedia key={i} media={media}/>)}
             {Array(layersCount).fill(0).map((_, i)=>{
               return <div 

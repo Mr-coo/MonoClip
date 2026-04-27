@@ -17,6 +17,7 @@ interface TimeLineState {
   assets: MediaAsset[];
   currentTime: number;
   isPlaying: boolean;
+  selectedAssetId: string | null;
 
   preview: PreviewState;
 
@@ -25,6 +26,8 @@ interface TimeLineState {
 
   setCurrentTime: (time: number) => void;
   togglePlay: () => void;
+  selectAsset: (id: string | null) => void;
+  cutAsset: () => void;
 
   previewMoveMedia: (id: string, type: PreviewStateType, nextDx: number, nextDy: number) => void;
   previewResizeMedia: (id: string, type: PreviewStateType, width: number, height: number, x: number, y: number) => void;
@@ -36,6 +39,7 @@ export const useTimelineStore = create<TimeLineState>((set) => ({
   assets: [],
   currentTime: 0,
   isPlaying: false,
+  selectedAssetId: null,
   preview: null,
 
   addAsset: (asset) => {
@@ -67,6 +71,35 @@ export const useTimelineStore = create<TimeLineState>((set) => ({
 
   togglePlay: () =>
     set((state) => ({ isPlaying: !state.isPlaying })),
+
+  selectAsset: (id) => set({ selectedAssetId: id }),
+
+  cutAsset: () =>
+    set((state) => {
+      const { selectedAssetId, currentTime, assets } = state;
+      if (!selectedAssetId) return state;
+
+      const asset = assets.find((a) => a.id === selectedAssetId);
+      if (!asset) return state;
+
+      const assetEnd = asset.startInTimeLine + (asset.endTime - asset.startTime);
+      if (currentTime <= asset.startInTimeLine || currentTime >= assetEnd) return state;
+
+      const cutSourceTime = asset.startTime + (currentTime - asset.startInTimeLine);
+
+      const left: MediaAsset = { ...asset, endTime: cutSourceTime };
+      const right: MediaAsset = {
+        ...asset,
+        id: crypto.randomUUID(),
+        startTime: cutSourceTime,
+        startInTimeLine: currentTime,
+      };
+
+      return {
+        assets: assets.map((a) => (a.id === asset.id ? left : a)).concat(right),
+        selectedAssetId: null,
+      };
+    }),
 
 
   previewMoveMedia: (id, type, nextDx, nextDy) =>

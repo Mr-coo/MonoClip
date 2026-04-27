@@ -1,10 +1,13 @@
 import { useMoveMediaInTimeline } from "../../hook/useMoveMediaInTimeline";
 import { useResizeMediaInTimeline } from "../../hook/useResizeMediaInTimeline";
 import { useEditorStore } from "../../store/editor.store";
+import { useTimelineStore } from "../../store/timeline.store";
 import { MediaAsset } from "../../types/mediaAsset";
 
 export function TimelineMedia({ media }: { media: MediaAsset }) {
   const editorStore = useEditorStore();
+  const { selectedAssetId, selectAsset } = useTimelineStore();
+  const isSelected = selectedAssetId === media.id;
   const moveMedia = useMoveMediaInTimeline(media.id);
   const resizeLeftMedia = useResizeMediaInTimeline(media.id, true);
   const resizeRightMedia = useResizeMediaInTimeline(media.id, false);
@@ -22,7 +25,8 @@ export function TimelineMedia({ media }: { media: MediaAsset }) {
         onPointerDown={moveMedia.onPointerDown}
         onPointerMove={moveMedia.onPointerMove}
         onPointerUp={moveMedia.onPointerUp}
-        className="absolute bg-gray-800 border border-white/10 rounded overflow-hidden h-9 opacity-60 hover:opacity-100 transition-opacity"
+        onClick={(e) => { e.stopPropagation(); selectAsset(isSelected ? null : media.id); }}
+        className={`absolute bg-gray-800 rounded overflow-hidden h-9 transition-opacity cursor-pointer ${isSelected ? "border-2 border-primary opacity-100" : "border border-white/10 opacity-60 hover:opacity-100"}`}
         style={{ left, top, width }}
       >
         {media.type === "video" ? (

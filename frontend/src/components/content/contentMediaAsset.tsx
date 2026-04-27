@@ -21,7 +21,7 @@ export function ContentMediaAsset({ asset }: { asset: MediaAsset }) {
 
     const visible =
       currentTime >= asset.startInTimeLine &&
-      currentTime <= asset.startInTimeLine + asset.endTime;
+      currentTime <= asset.startInTimeLine + (asset.endTime - asset.startTime);
 
     media.style.display = visible ? "block" : "none";
 
