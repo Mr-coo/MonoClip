@@ -2,20 +2,23 @@ use crate::ffmpeg::runner;
 use crate::models::request::{MediaAsset, TextStyle};
 
 pub async fn execute(assets: &[MediaAsset], output_path: &str) -> Result<(), String> {
-    let visuals: Vec<&MediaAsset> = assets
+    // Sort by layer ascending: lowest layer = background, highest = foreground.
+    let mut visuals: Vec<&MediaAsset> = assets
         .iter()
         .filter(|a| a.asset_type == "video" || a.asset_type == "img" || a.asset_type == "image")
         .collect();
+    visuals.sort_by_key(|a| a.layer);
 
     let audio_only: Vec<&MediaAsset> = assets
         .iter()
         .filter(|a| a.asset_type == "audio")
         .collect();
 
-    let text_assets: Vec<&MediaAsset> = assets
+    let mut text_assets: Vec<&MediaAsset> = assets
         .iter()
         .filter(|a| a.asset_type == "text" && a.text_style.is_some())
         .collect();
+    text_assets.sort_by_key(|a| a.layer);
 
     if visuals.is_empty() && audio_only.is_empty() && text_assets.is_empty() {
         return Err("No exportable assets on the timeline".into());
@@ -81,32 +84,46 @@ pub async fn execute(assets: &[MediaAsset], output_path: &str) -> Result<(), Str
     let mut filters: Vec<String> = Vec::new();
     let mut last_v = "[0:v]".to_string();
 
-    // Scale + overlay each visual at its canvas position.
-    // eof_action=pass lets the base canvas show through once the clip ends.
-    for (i, asset) in visuals.iter().enumerate() {
-        let idx = i + 1;
-        let sv = format!("[sv{i}]");
-        let ov = format!("[ov{i}]");
-        filters.push(format!(
-            "[{idx}:v]scale={w}:{h}{sv}",
-            w = asset.width as i32,
-            h = asset.height as i32,
-        ));
-        filters.push(format!(
-            "{last_v}{sv}overlay={x}:{y}:eof_action=pass{ov}",
-            x = asset.x as i32,
-            y = asset.y as i32,
-        ));
-        last_v = ov;
+    // Unified render pass: visuals and text interleaved in layer order.
+    // (layer, is_visual, index-into-visuals-or-text_assets)
+    let mut render_order: Vec<(i32, bool, usize)> = Vec::new();
+    for (i, a) in visuals.iter().enumerate() {
+        render_order.push((a.layer, true, i));
     }
+    for (i, a) in text_assets.iter().enumerate() {
+        render_order.push((a.layer, false, i));
+    }
+    render_order.sort_by_key(|&(layer, _, _)| layer);
 
-    // Drawtext overlay for each text asset, chained after video overlays.
-    for (i, asset) in text_assets.iter().enumerate() {
-        if let Some(ts) = &asset.text_style {
-            let tv = format!("[tv{i}]");
-            let dt = build_drawtext(asset, ts);
-            filters.push(format!("{last_v}{dt}{tv}"));
-            last_v = tv;
+    let mut visual_n = 0usize;
+    let mut text_n   = 0usize;
+    for (_, is_visual, idx) in &render_order {
+        if *is_visual {
+            let asset     = visuals[*idx];
+            let input_idx = idx + 1; // input 0 is the base canvas
+            let sv = format!("[sv{visual_n}]");
+            let ov = format!("[ov{visual_n}]");
+            filters.push(format!(
+                "[{input_idx}:v]scale={w}:{h}{sv}",
+                w = asset.width as i32,
+                h = asset.height as i32,
+            ));
+            filters.push(format!(
+                "{last_v}{sv}overlay={x}:{y}:eof_action=pass{ov}",
+                x = asset.x as i32,
+                y = asset.y as i32,
+            ));
+            last_v = ov;
+            visual_n += 1;
+        } else {
+            let asset = text_assets[*idx];
+            if let Some(ts) = &asset.text_style {
+                let tv = format!("[tv{text_n}]");
+                let dt = build_drawtext(asset, ts);
+                filters.push(format!("{last_v}{dt}{tv}"));
+                last_v = tv;
+                text_n += 1;
+            }
         }
     }
 
