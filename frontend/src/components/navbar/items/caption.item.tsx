@@ -1,14 +1,12 @@
 import { FaClosedCaptioning } from "react-icons/fa";
-import { MdSubtitles } from "react-icons/md";
-import { MdDelete } from "react-icons/md";
+import { MdDelete, MdFilterAlt, MdAdd } from "react-icons/md";
 import { FiDownload } from "react-icons/fi";
-import { MdTranslate } from "react-icons/md";
-import { MdFilterAlt } from "react-icons/md";
-import { useMemo, useState } from "react";
-import ButtonOutlined from "../../buttons/button.outlined";
+import { useState, useMemo } from "react";
 import { useMediaStore } from "../../../store/media.store";
+import { useCaptionStore } from "../../../store/caption.store";
+import { useTimelineStore } from "../../../store/timeline.store";
 
-interface CaptionSegment {
+interface ApiSegment {
   id: number;
   start: number;
   end: number;
@@ -17,210 +15,238 @@ interface CaptionSegment {
 
 interface TranscriptionResponse {
   language: string;
-  segments: CaptionSegment[];
+  segments: ApiSegment[];
 }
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8000";
 
-function formatSeconds(seconds: number): string {
-  const safeSeconds = Math.max(0, Math.floor(seconds));
-  const hours = Math.floor(safeSeconds / 3600)
-    .toString()
-    .padStart(2, "0");
-  const minutes = Math.floor((safeSeconds % 3600) / 60)
-    .toString()
-    .padStart(2, "0");
-  const secs = (safeSeconds % 60).toString().padStart(2, "0");
-
-  return `${hours}:${minutes}:${secs}`;
+function fmt(s: number): string {
+  const m = Math.floor(s / 60);
+  const sec = (s % 60).toFixed(1).padStart(4, "0");
+  return `${m}:${sec}`;
 }
 
-export default function CaptionItem(){
-  const assets = useMediaStore((state) => state.assets);
+export default function CaptionItem() {
+  const mediaAssets = useMediaStore((state) => state.assets);
+  const { segments, addSegment, updateSegment, removeSegment, setSegments } =
+    useCaptionStore();
+  const currentTime = useTimelineStore((s) => s.currentTime);
+
   const [activeAction, setActiveAction] = useState<"auto" | "filter" | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [rawCaptionResult, setRawCaptionResult] = useState<TranscriptionResponse | null>(null);
-  const [captionResult, setCaptionResult] = useState<TranscriptionResponse | null>(null);
+  const [rawSegments, setRawSegments] = useState<ApiSegment[] | null>(null);
+  const [language, setLanguage] = useState<string | null>(null);
 
-  const latestTranscribableAsset = useMemo(
-    () => [...assets].reverse().find((asset) => asset.type === "video" || asset.type === "audio"),
-    [assets],
+  const latestTranscribable = useMemo(
+    () =>
+      [...mediaAssets]
+        .reverse()
+        .find((a) => a.type === "video" || a.type === "audio"),
+    [mediaAssets],
   );
 
-  async function handleAutoCaption(): Promise<void> {
-    if (!latestTranscribableAsset) {
-      setError("Upload media video/audio dulu di tab Media sebelum auto caption.");
+  async function handleAutoCaption() {
+    if (!latestTranscribable) {
+      setError("Upload a video or audio file first (Media tab).");
       return;
     }
-
     setError(null);
     setActiveAction("auto");
-
     try {
-      const mediaResponse = await fetch(latestTranscribableAsset.path);
-      if (!mediaResponse.ok) {
-        throw new Error("Gagal membaca file media lokal.");
-      }
-
-      const mediaBlob = await mediaResponse.blob();
-      const file = new File([mediaBlob], latestTranscribableAsset.name, {
-        type: mediaBlob.type || "application/octet-stream",
+      const blob = await (await fetch(latestTranscribable.path)).blob();
+      const file = new File([blob], latestTranscribable.name, {
+        type: blob.type || "application/octet-stream",
       });
+      const form = new FormData();
+      form.append("file", file);
 
-      const formData = new FormData();
-      formData.append("file", file);
-
-      const response = await fetch(`${API_BASE_URL}/transcribe`, {
+      const res = await fetch(`${API_BASE_URL}/transcribe`, {
         method: "POST",
-        body: formData,
+        body: form,
       });
-
-      if (!response.ok) {
-        let message = "Transcription request failed.";
-        try {
-          const errorBody = (await response.json()) as { detail?: string };
-          if (errorBody.detail) {
-            message = errorBody.detail;
-          }
-        } catch {
-          // Keep default message when error response is not JSON.
-        }
-        throw new Error(message);
+      if (!res.ok) {
+        const body = (await res.json().catch(() => ({}))) as { detail?: string };
+        throw new Error(body.detail ?? "Transcription failed.");
       }
-
-      const data = (await response.json()) as TranscriptionResponse;
-      setRawCaptionResult(data);
-      setCaptionResult(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Unknown error when generating captions.");
+      const data = (await res.json()) as TranscriptionResponse;
+      setRawSegments(data.segments);
+      setLanguage(data.language);
+      setSegments(data.segments);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Unknown error.");
     } finally {
       setActiveAction(null);
     }
   }
 
-  async function handleFilterCaption(): Promise<void> {
-    const sourceCaption = rawCaptionResult ?? captionResult;
-
-    if (!sourceCaption) {
-      setError("Generate caption dulu sebelum filter badwords.");
+  async function handleFilterCaption() {
+    const source: ApiSegment[] =
+      rawSegments ??
+      segments.map((s, i) => ({ id: i, start: s.start, end: s.end, text: s.text }));
+    if (!source.length) {
+      setError("Generate captions first before filtering.");
       return;
     }
-
     setError(null);
     setActiveAction("filter");
-
     try {
-      const response = await fetch(`${API_BASE_URL}/caption/filter`, {
+      const payload: TranscriptionResponse = {
+        language: language ?? "id",
+        segments: source as ApiSegment[],
+      };
+      const res = await fetch(`${API_BASE_URL}/caption/filter`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(sourceCaption),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
       });
-
-      if (!response.ok) {
-        let message = "Filter request failed.";
-        try {
-          const errorBody = (await response.json()) as { detail?: string };
-          if (errorBody.detail) {
-            message = errorBody.detail;
-          }
-        } catch {
-          // Keep default message when error response is not JSON.
-        }
-        throw new Error(message);
+      if (!res.ok) {
+        const body = (await res.json().catch(() => ({}))) as { detail?: string };
+        throw new Error(body.detail ?? "Filter failed.");
       }
-
-      const data = (await response.json()) as TranscriptionResponse;
-      setCaptionResult(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Unknown error when filtering captions.");
+      const data = (await res.json()) as TranscriptionResponse;
+      setSegments(data.segments);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Unknown error.");
     } finally {
       setActiveAction(null);
     }
   }
 
-  function handleDownloadJson(): void {
-    if (!captionResult) return;
-
-    const blob = new Blob([JSON.stringify(captionResult, null, 2)], {
-      type: "application/json",
-    });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement("a");
-    anchor.href = url;
-    anchor.download = "captions.json";
-    anchor.click();
+  function handleDownload() {
+    if (!segments.length) return;
+    const payload = { language: language ?? "id", segments };
+    const url = URL.createObjectURL(
+      new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" }),
+    );
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "captions.json";
+    a.click();
     URL.revokeObjectURL(url);
   }
 
+  function handleAddCaption() {
+    addSegment(currentTime, currentTime + 3);
+  }
+
+  function handleTimeChange(
+    id: string,
+    field: "start" | "end",
+    raw: string,
+  ) {
+    const val = parseFloat(raw);
+    if (!isNaN(val) && val >= 0) updateSegment(id, { [field]: val });
+  }
+
   return (
-  <div className="flex flex-col justify-start items-center w-full h-full min-h-0 p-2">
-    <h2 className="text-2xl border-b-2 border-b-shadow w-full">
-      Caption
-    </h2>
+    <div className="flex flex-col w-full h-full min-h-0 p-2">
+      <h2 className="text-2xl border-b-2 border-b-shadow w-full">Caption</h2>
 
-    <div className="w-full my-4 p-2 flex justify-evenly items-start flex-wrap gap-4">
-      <button
-        className="text-[10px] flex flex-col justify-center items-center gap-1 bg-shadow px-4 py-2 rounded hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
-        onClick={handleAutoCaption}
-        disabled={activeAction !== null}
-      >
-        <FaClosedCaptioning size={20}/>
-        {activeAction === "auto" ? "Running..." : "Auto"}
-      </button>
-      <button className="text-[10px] flex flex-col justify-center items-center gap-1 bg-shadow px-4 py-2 rounded hover:opacity-90">
-        <MdSubtitles size={20}/>
-        Manual
-      </button>
-      <button
-        className="text-[10px] flex flex-col justify-center items-center gap-1 bg-shadow px-4 py-2 rounded hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
-        onClick={handleFilterCaption}
-        disabled={activeAction !== null || (!rawCaptionResult && !captionResult)}
-      >
-        <MdFilterAlt size={20}/>
-        {activeAction === "filter" ? "Filtering..." : "Filter"}
-      </button>
-    </div>
-
-    <div className="flex items-center justify-between w-full">
-      <h3>Captions</h3>
-      <div className="flex items-center justify-between gap-3">
-        <button className="hover:bg-shadow rounded-4xl p-2"><MdTranslate/></button>
+      {/* Action buttons */}
+      <div className="w-full mt-4 flex justify-evenly items-center flex-wrap gap-3">
         <button
-          className="hover:bg-shadow rounded-4xl p-2 disabled:opacity-40 disabled:cursor-not-allowed"
-          onClick={handleDownloadJson}
-          disabled={!captionResult}
+          className="text-[10px] flex flex-col items-center gap-1 bg-shadow px-4 py-2 rounded hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
+          onClick={handleAutoCaption}
+          disabled={activeAction !== null}
         >
-          <FiDownload/>
+          <FaClosedCaptioning size={18} />
+          {activeAction === "auto" ? "Running…" : "Auto"}
+        </button>
+        <button
+          className="text-[10px] flex flex-col items-center gap-1 bg-shadow px-4 py-2 rounded hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
+          onClick={handleFilterCaption}
+          disabled={activeAction !== null || segments.length === 0}
+        >
+          <MdFilterAlt size={18} />
+          {activeAction === "filter" ? "Filtering…" : "Filter"}
+        </button>
+        <button
+          className="text-[10px] flex flex-col items-center gap-1 bg-shadow px-4 py-2 rounded hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
+          onClick={handleDownload}
+          disabled={segments.length === 0}
+        >
+          <FiDownload size={18} />
+          Download
         </button>
       </div>
-    </div>
-    {error && <p className="w-full text-xs text-red-400 mt-2">{error}</p>}
-    {captionResult && (
-      <p className="w-full text-[11px] text-typography/70 mt-2">
-        Language: {captionResult.language} | Segments: {captionResult.segments.length}
-      </p>
-    )}
-    <div className="flex-1 w-full my-5 flex justify-between items-start flex-wrap gap-4 overflow-y-auto no-scrollbar">
-      {(captionResult?.segments ?? []).map((segment) => (
-        <div key={segment.id} className="group w-full p-2 rounded hover:bg-shadow transition-all duration-200">
-          <div className="flex justify-between items-center">
-            <p className="text-[11px] mb-2 font-bold">
-              {formatSeconds(segment.start)} - {formatSeconds(segment.end)}
-            </p>
-            <MdDelete className="hidden group-hover:block transition-all duration-200 hover:scale-105"/>
-          </div>
-          <p className="text-xs">{segment.text}</p>
-        </div>
-      ))}
-      {!captionResult && (
-        <p className="text-xs text-typography/60">Belum ada caption. Klik Auto untuk generate dari media terbaru.</p>
-      )}
-    </div>
-    <ButtonOutlined label="Add Caption" onClick={()=>{}}/>
-    
-  </div>
 
-  )
+      {/* Status */}
+      {error && <p className="w-full text-xs text-red-400 mt-2">{error}</p>}
+      {language && segments.length > 0 && (
+        <p className="w-full text-[11px] text-typography/50 mt-2">
+          Language: {language} · {segments.length} segment{segments.length !== 1 ? "s" : ""}
+        </p>
+      )}
+
+      {/* Caption list */}
+      <div className="flex items-center justify-between w-full mt-3 mb-1">
+        <h3 className="text-sm font-semibold">Captions</h3>
+      </div>
+
+      <div className="flex-1 w-full overflow-y-auto no-scrollbar flex flex-col gap-2">
+        {segments.length === 0 && (
+          <p className="text-xs text-typography/50 mt-2">
+            No captions yet. Click Auto to transcribe or add one manually.
+          </p>
+        )}
+
+        {segments.map((seg) => (
+          <div
+            key={seg.id}
+            className="w-full border border-white/10 rounded-lg p-2 bg-shadow/30 hover:border-white/20 transition-colors"
+          >
+            {/* Time row */}
+            <div className="flex items-center gap-1 mb-1.5">
+              <input
+                type="number"
+                value={seg.start}
+                onChange={(e) => handleTimeChange(seg.id, "start", e.target.value)}
+                className="w-16 bg-dark/60 rounded px-1 py-0.5 text-[11px] text-center text-typography/80 outline-none focus:ring-1 focus:ring-primary/60"
+                step="0.1"
+                min="0"
+                title="Start (seconds)"
+              />
+              <span className="text-typography/40 text-xs">→</span>
+              <input
+                type="number"
+                value={seg.end}
+                onChange={(e) => handleTimeChange(seg.id, "end", e.target.value)}
+                className="w-16 bg-dark/60 rounded px-1 py-0.5 text-[11px] text-center text-typography/80 outline-none focus:ring-1 focus:ring-primary/60"
+                step="0.1"
+                min="0"
+                title="End (seconds)"
+              />
+              <span className="text-[10px] text-typography/40 mr-auto">s</span>
+              <span className="text-[10px] text-typography/40">{fmt(seg.start)} – {fmt(seg.end)}</span>
+              <button
+                className="ml-2 text-red-400/60 hover:text-red-400 transition-colors"
+                onClick={() => removeSegment(seg.id)}
+                title="Delete caption"
+              >
+                <MdDelete size={14} />
+              </button>
+            </div>
+
+            {/* Text */}
+            <textarea
+              value={seg.text}
+              onChange={(e) => updateSegment(seg.id, { text: e.target.value })}
+              className="w-full bg-transparent text-xs text-typography resize-none outline-none placeholder:text-typography/30 leading-relaxed"
+              rows={2}
+              placeholder="Caption text…"
+            />
+          </div>
+        ))}
+      </div>
+
+      {/* Add caption */}
+      <button
+        className="mt-3 w-full flex items-center justify-center gap-2 border border-white/20 rounded py-1.5 text-xs hover:bg-shadow transition-colors"
+        onClick={handleAddCaption}
+      >
+        <MdAdd size={14} />
+        Add Caption at {fmt(currentTime)}
+      </button>
+    </div>
+  );
 }
