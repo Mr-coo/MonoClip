@@ -131,11 +131,22 @@ export default function CaptionItem() {
 
   function handleTimeChange(
     id: string,
-    field: "start" | "end",
+    field: "start" | "end" | "duration",
     raw: string,
+    segStart: number,
+    segEnd: number,
   ) {
     const val = parseFloat(raw);
-    if (!isNaN(val) && val >= 0) updateSegment(id, { [field]: val });
+    if (isNaN(val) || val < 0) return;
+    if (field === "duration") {
+      updateSegment(id, { end: segStart + val });
+    } else if (field === "start") {
+      if (val > segEnd) return;
+      updateSegment(id, { start: val });
+    } else {
+      if (val < segStart) return;
+      updateSegment(id, { end: val });
+    }
   }
 
   return (
@@ -190,53 +201,72 @@ export default function CaptionItem() {
           </p>
         )}
 
-        {segments.map((seg) => (
-          <div
-            key={seg.id}
-            className="w-full border border-white/10 rounded-lg p-2 bg-shadow/30 hover:border-white/20 transition-colors"
-          >
-            {/* Time row */}
-            <div className="flex items-center gap-1 mb-1.5">
-              <input
-                type="number"
-                value={seg.start}
-                onChange={(e) => handleTimeChange(seg.id, "start", e.target.value)}
-                className="w-16 bg-dark/60 rounded px-1 py-0.5 text-[11px] text-center text-typography/80 outline-none focus:ring-1 focus:ring-primary/60"
-                step="0.1"
-                min="0"
-                title="Start (seconds)"
-              />
-              <span className="text-typography/40 text-xs">→</span>
-              <input
-                type="number"
-                value={seg.end}
-                onChange={(e) => handleTimeChange(seg.id, "end", e.target.value)}
-                className="w-16 bg-dark/60 rounded px-1 py-0.5 text-[11px] text-center text-typography/80 outline-none focus:ring-1 focus:ring-primary/60"
-                step="0.1"
-                min="0"
-                title="End (seconds)"
-              />
-              <span className="text-[10px] text-typography/40 mr-auto">s</span>
-              <span className="text-[10px] text-typography/40">{fmt(seg.start)} – {fmt(seg.end)}</span>
-              <button
-                className="ml-2 text-red-400/60 hover:text-red-400 transition-colors"
-                onClick={() => removeSegment(seg.id)}
-                title="Delete caption"
-              >
-                <MdDelete size={14} />
-              </button>
-            </div>
+        {segments.map((seg) => {
+          const duration = parseFloat((seg.end - seg.start).toFixed(2));
+          return (
+            <div
+              key={seg.id}
+              className="w-full border border-white/10 rounded-lg p-2 bg-shadow/30 hover:border-white/20 transition-colors"
+            >
+              <div className="flex items-center justify-end mb-1.5">
+                <button
+                  className="text-red-400/60 hover:text-red-400 transition-colors"
+                  onClick={() => removeSegment(seg.id)}
+                  title="Delete caption"
+                >
+                  <MdDelete size={14} />
+                </button>
+              </div>
 
-            {/* Text */}
-            <textarea
-              value={seg.text}
-              onChange={(e) => updateSegment(seg.id, { text: e.target.value })}
-              className="w-full bg-transparent text-xs text-typography resize-none outline-none placeholder:text-typography/30 leading-relaxed"
-              rows={2}
-              placeholder="Caption text…"
-            />
-          </div>
-        ))}
+              <div className="grid grid-cols-3 gap-1 mb-2">
+                <div className="flex flex-col gap-0.5">
+                  <label className="text-[9px] text-typography/40 text-center">Start (s)</label>
+                  <input
+                    key={`start-${seg.id}-${seg.start}`}
+                    type="number"
+                    defaultValue={seg.start}
+                    onBlur={(e) => handleTimeChange(seg.id, "start", e.target.value, seg.start, seg.end)}
+                    className="w-full bg-dark/60 rounded px-1 py-0.5 text-[11px] text-center text-typography/80 outline-none focus:ring-1 focus:ring-primary/60"
+                    step="0.1"
+                    min="0"
+                  />
+                </div>
+                <div className="flex flex-col gap-0.5">
+                  <label className="text-[9px] text-typography/40 text-center">End (s)</label>
+                  <input
+                    key={`end-${seg.id}-${seg.end}`}
+                    type="number"
+                    defaultValue={seg.end}
+                    onBlur={(e) => handleTimeChange(seg.id, "end", e.target.value, seg.start, seg.end)}
+                    className="w-full bg-dark/60 rounded px-1 py-0.5 text-[11px] text-center text-typography/80 outline-none focus:ring-1 focus:ring-primary/60"
+                    step="0.1"
+                    min="0"
+                  />
+                </div>
+                <div className="flex flex-col gap-0.5">
+                  <label className="text-[9px] text-typography/40 text-center">Duration (s)</label>
+                  <input
+                    key={`dur-${seg.id}-${duration}`}
+                    type="number"
+                    defaultValue={duration}
+                    onBlur={(e) => handleTimeChange(seg.id, "duration", e.target.value, seg.start, seg.end)}
+                    className="w-full bg-dark/60 rounded px-1 py-0.5 text-[11px] text-center text-typography/80 outline-none focus:ring-1 focus:ring-primary/60"
+                    step="0.1"
+                    min="0"
+                  />
+                </div>
+              </div>
+
+              <textarea
+                value={seg.text}
+                onChange={(e) => updateSegment(seg.id, { text: e.target.value })}
+                className="w-full bg-dark/40 rounded px-1.5 py-1 text-xs text-typography resize-none outline-none placeholder:text-typography/30 leading-relaxed focus:ring-1 focus:ring-primary/60"
+                rows={2}
+                placeholder="Caption text…"
+              />
+            </div>
+          );
+        })}
       </div>
 
       {/* Add caption */}
