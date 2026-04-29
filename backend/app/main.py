@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.routes.filter_badword import router as filter_badword_router
 from app.routes.transcribe import router as transcribe_router
+from app.routes.tracking import router as tracking_router
 from app.services.whisper_service import get_whisper_model
 
 
@@ -22,6 +23,7 @@ app.add_middleware(
 
 app.include_router(transcribe_router)
 app.include_router(filter_badword_router)
+app.include_router(tracking_router)
 
 
 @app.get("/health")
