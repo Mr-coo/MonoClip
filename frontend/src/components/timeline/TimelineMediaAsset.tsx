@@ -76,6 +76,7 @@ export function TimelineMedia({ media }: { media: MediaAsset }) {
         {isSelected && (
           <button
             className="absolute top-0.5 right-0.5 z-20 bg-red-600/80 hover:bg-red-600 text-white rounded-sm flex items-center justify-center w-4 h-4"
+            onPointerDown={(e) => e.stopPropagation()}
             onClick={handleDelete}
             title="Delete"
           >
