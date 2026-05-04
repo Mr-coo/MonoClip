@@ -18,11 +18,17 @@ interface TimeLineState {
   currentTime: number;
   isPlaying: boolean;
   selectedAssetId: string | null;
+  clipboard: MediaAsset | null;
 
   preview: PreviewState;
 
   addAsset: (asset: MediaAsset) => void;
   removeAsset: (asset: MediaAsset) => void;
+  deleteSelected: () => void;
+  copySelected: () => void;
+  cutSelected: () => void;
+  pasteClipboard: () => void;
+  duplicateSelected: () => void;
 
   setCurrentTime: (time: number) => void;
   togglePlay: () => void;
@@ -36,11 +42,12 @@ interface TimeLineState {
   cancelPreview: () => void;
 }
 
-export const useTimelineStore = create<TimeLineState>((set) => ({
+export const useTimelineStore = create<TimeLineState>((set, get) => ({
   assets: [],
   currentTime: 0,
   isPlaying: false,
   selectedAssetId: null,
+  clipboard: null,
   preview: null,
 
   addAsset: (asset) => {
@@ -67,6 +74,60 @@ export const useTimelineStore = create<TimeLineState>((set) => ({
       assets: state.assets.filter((a) => a.id !== asset.id),
     })),
 
+  deleteSelected: () =>
+    set((state) => {
+      if (!state.selectedAssetId) return state;
+      return {
+        assets: state.assets.filter((a) => a.id !== state.selectedAssetId),
+        selectedAssetId: null,
+      };
+    }),
+
+  copySelected: () =>
+    set((state) => {
+      const asset = state.assets.find((a) => a.id === state.selectedAssetId);
+      if (!asset) return state;
+      return { clipboard: asset };
+    }),
+
+  cutSelected: () =>
+    set((state) => {
+      const asset = state.assets.find((a) => a.id === state.selectedAssetId);
+      if (!asset) return state;
+      return {
+        clipboard: asset,
+        assets: state.assets.filter((a) => a.id !== state.selectedAssetId),
+        selectedAssetId: null,
+      };
+    }),
+
+  pasteClipboard: () =>
+    set((state) => {
+      if (!state.clipboard) return state;
+      const src = state.clipboard;
+      const duration = src.endTime - src.startTime;
+      const pasted: MediaAsset = {
+        ...src,
+        id: crypto.randomUUID(),
+        startInTimeLine: state.currentTime,
+        endTime: src.startTime + duration,
+      };
+      return { assets: [...state.assets, pasted], selectedAssetId: pasted.id };
+    }),
+
+  duplicateSelected: () => {
+    const { assets, selectedAssetId } = get();
+    const src = assets.find((a) => a.id === selectedAssetId);
+    if (!src) return;
+    const duration = src.endTime - src.startTime;
+    const duped: MediaAsset = {
+      ...src,
+      id: crypto.randomUUID(),
+      startInTimeLine: src.startInTimeLine + duration,
+      endTime: src.startTime + duration,
+    };
+    set((state) => ({ assets: [...state.assets, duped], selectedAssetId: duped.id }));
+  },
 
   setCurrentTime: (time) => set({ currentTime: time }),
 

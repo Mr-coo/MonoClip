@@ -4,11 +4,13 @@ import Topbar from "./components/topbar/topbar";
 import Content from "./components/content/content";
 import TimeLine from "./components/timeline/timeline";
 import { usePlayback } from "./hook/usePlayback";
+import { useKeyboardShortcuts } from "./hook/useKeyboardShortcuts";
 
 function App() {
   const [isShowDetail, setIsShowDetail] = useState<boolean>(true)
 
   usePlayback()
+  useKeyboardShortcuts()
 
   return (
     <main className="w-screen h-screen bg-black overflow-hidden flex justify-between items-center">
