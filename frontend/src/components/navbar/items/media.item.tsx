@@ -7,6 +7,7 @@ import { MdOutlineAudiotrack, MdDelete } from "react-icons/md";
 import { FaImages } from "react-icons/fa";
 import { FaVideo } from "react-icons/fa6";
 import { useTimelineStore } from "../../../store/timeline.store";
+import { useEditorStore } from "../../../store/editor.store";
 
 export default function MediaItem() {
   const addAssetMediaStore = useMediaStore((state) => state.addAsset);
@@ -32,6 +33,34 @@ export default function MediaItem() {
       el.src = convertFileSrc(path);
 
       const handleLoad = () => {
+        const { canvasWidth, canvasHeight } = useEditorStore.getState();
+
+        const nativeW =
+          el instanceof HTMLVideoElement
+            ? el.videoWidth
+            : el instanceof HTMLImageElement
+            ? el.naturalWidth
+            : 0;
+        const nativeH =
+          el instanceof HTMLVideoElement
+            ? el.videoHeight
+            : el instanceof HTMLImageElement
+            ? el.naturalHeight
+            : 0;
+
+        // Scale to fit canvas while preserving aspect ratio, then center
+        let fitW = nativeW;
+        let fitH = nativeH;
+        let fitX = 0;
+        let fitY = 0;
+        if (nativeW > 0 && nativeH > 0) {
+          const s = Math.min(canvasWidth / nativeW, canvasHeight / nativeH);
+          fitW = Math.round(nativeW * s);
+          fitH = Math.round(nativeH * s);
+          fitX = Math.round((canvasWidth - fitW) / 2);
+          fitY = Math.round((canvasHeight - fitH) / 2);
+        }
+
         resolve({
           ...DEFAULT_MEDIA_ASSET_SETTINGS,
           id: "",
@@ -39,18 +68,10 @@ export default function MediaItem() {
           path: el.src,
           name: path.split(/[\\/]/).pop() || "unknown",
           endTime: el instanceof HTMLMediaElement ? el.duration : 5,
-          width:
-            el instanceof HTMLVideoElement
-              ? el.videoWidth
-              : el instanceof HTMLImageElement
-              ? el.naturalWidth
-              : 0,
-          height:
-            el instanceof HTMLVideoElement
-              ? el.videoHeight
-              : el instanceof HTMLImageElement
-              ? el.naturalHeight
-              : 0,
+          width: fitW,
+          height: fitH,
+          x: fitX,
+          y: fitY,
         });
       };
 

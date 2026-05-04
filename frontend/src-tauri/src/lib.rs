@@ -6,7 +6,12 @@ use crate::models::request::MediaAsset;
 use crate::services::export;
 
 #[tauri::command]
-async fn export_video(media_assets: Vec<MediaAsset>, output_path: String) -> Result<String, String> {
+async fn export_video(
+    media_assets: Vec<MediaAsset>,
+    output_path: String,
+    canvas_width: u32,
+    canvas_height: u32,
+) -> Result<String, String> {
     if output_path.is_empty() {
         return Err("No output path provided".into());
     }
@@ -16,7 +21,7 @@ async fn export_video(media_assets: Vec<MediaAsset>, output_path: String) -> Res
         .map(|mut a| { a.path = clean_asset_path(&a.path); a })
         .collect();
 
-    export::execute(&assets, &output_path).await?;
+    export::execute(&assets, &output_path, canvas_width, canvas_height).await?;
 
     Ok(output_path)
 }

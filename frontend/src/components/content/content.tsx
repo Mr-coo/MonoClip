@@ -6,38 +6,46 @@ import { useCaptionStore } from "../../store/caption.store";
 
 export default function Content() {
   const { assets, currentTime } = useTimelineStore();
-  const { timelineHeight } = useEditorStore();
+  const { timelineHeight, canvasWidth, canvasHeight } = useEditorStore();
   const { segments } = useCaptionStore();
 
-  const DESIGN_WIDTH = 1920;
-  const DESIGN_HEIGHT = 1080;
-
   const [scale, setScale] = useState(1);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const [displayW, setDisplayW] = useState(0);
+  const [displayH, setDisplayH] = useState(0);
+  const outerRef = useRef<HTMLDivElement>(null);
 
   useLayoutEffect(() => {
-    const updateScale = () => {
-      if (!containerRef.current) return;
-      const { width, height } = containerRef.current.getBoundingClientRect();
-      setScale(Math.min(width / DESIGN_WIDTH, height / DESIGN_HEIGHT));
+    const update = () => {
+      if (!outerRef.current) return;
+      const { width, height } = outerRef.current.getBoundingClientRect();
+      // p-10 = 40px each side
+      const availW = width - 80;
+      const availH = height - 80;
+      const s = Math.min(availW / canvasWidth, availH / canvasHeight);
+      setScale(s);
+      setDisplayW(Math.round(canvasWidth * s));
+      setDisplayH(Math.round(canvasHeight * s));
     };
-    updateScale();
-    window.addEventListener("resize", updateScale);
-    return () => window.removeEventListener("resize", updateScale);
-  }, [timelineHeight]);
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, [timelineHeight, canvasWidth, canvasHeight]);
 
   const activeCaption = segments.find(
     (s) => currentTime >= s.start && currentTime < s.end,
   );
 
   return (
-    <div className="p-10 h-2/3 flex items-center justify-center">
-      <div ref={containerRef} className="bg-white h-full aspect-video relative">
+    <div ref={outerRef} className="p-10 h-2/3 flex items-center justify-center">
+      <div
+        className="bg-white relative overflow-hidden"
+        style={{ width: displayW, height: displayH }}
+      >
         <div
           className="absolute top-0 left-0"
           style={{
-            width: DESIGN_WIDTH,
-            height: DESIGN_HEIGHT,
+            width: canvasWidth,
+            height: canvasHeight,
             transform: `scale(${scale})`,
             transformOrigin: "top left",
           }}
@@ -50,9 +58,9 @@ export default function Content() {
             <div
               className="absolute left-0 w-full text-center pointer-events-none select-none"
               style={{
-                bottom: 80,
-                padding: "0 160px",
-                fontSize: 64,
+                bottom: Math.round(canvasHeight * 0.074),
+                padding: `0 ${Math.round(canvasWidth * 0.083)}px`,
+                fontSize: Math.round(canvasHeight * 0.059),
                 fontWeight: 700,
                 color: "#ffffff",
                 lineHeight: 1.3,

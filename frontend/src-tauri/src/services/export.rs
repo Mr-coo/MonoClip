@@ -1,7 +1,7 @@
 use crate::ffmpeg::runner;
 use crate::models::request::{MediaAsset, TextStyle};
 
-pub async fn execute(assets: &[MediaAsset], output_path: &str) -> Result<(), String> {
+pub async fn execute(assets: &[MediaAsset], output_path: &str, canvas_width: u32, canvas_height: u32) -> Result<(), String> {
     // Sort by layer ascending: lowest layer = background, highest = foreground.
     let mut visuals: Vec<&MediaAsset> = assets
         .iter()
@@ -36,13 +36,13 @@ pub async fn execute(assets: &[MediaAsset], output_path: &str) -> Result<(), Str
 
     let mut args: Vec<String> = vec!["-y".into()];
 
-    // Input 0: base black 1920×1080 canvas
+    // Input 0: base black canvas at the chosen resolution
     args.extend_from_slice(&[
         "-f".into(),
         "lavfi".into(),
         "-i".into(),
         format!(
-            "color=black:size=1920x1080:rate=30:duration={:.3}",
+            "color=black:size={canvas_width}x{canvas_height}:rate=30:duration={:.3}",
             total_duration + 0.1
         ),
     ]);
