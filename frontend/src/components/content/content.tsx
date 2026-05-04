@@ -6,7 +6,7 @@ import { useCaptionStore } from "../../store/caption.store";
 
 export default function Content() {
   const { assets, currentTime } = useTimelineStore();
-  const { timelineHeight, canvasWidth, canvasHeight } = useEditorStore();
+  const { timelineHeight, canvasWidth, canvasHeight, setContentScale, snapGuides } = useEditorStore();
   const { segments } = useCaptionStore();
 
   const [scale, setScale] = useState(1);
@@ -25,6 +25,7 @@ export default function Content() {
       setScale(s);
       setDisplayW(Math.round(canvasWidth * s));
       setDisplayH(Math.round(canvasHeight * s));
+      setContentScale(s);
     };
     update();
     window.addEventListener("resize", update);
@@ -71,6 +72,32 @@ export default function Content() {
             >
               {activeCaption.text}
             </div>
+          )}
+
+          {/* Snap guide lines */}
+          {snapGuides?.vertical !== undefined && (
+            <div
+              className="absolute top-0 bottom-0 pointer-events-none"
+              style={{
+                left: snapGuides.vertical,
+                width: 1,
+                height: canvasHeight,
+                backgroundColor: "rgba(0, 210, 255, 0.85)",
+                zIndex: 9999,
+              }}
+            />
+          )}
+          {snapGuides?.horizontal !== undefined && (
+            <div
+              className="absolute left-0 right-0 pointer-events-none"
+              style={{
+                top: snapGuides.horizontal,
+                width: canvasWidth,
+                height: 1,
+                backgroundColor: "rgba(0, 210, 255, 0.85)",
+                zIndex: 9999,
+              }}
+            />
           )}
         </div>
       </div>
