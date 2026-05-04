@@ -39,7 +39,7 @@ export default function Content() {
   return (
     <div ref={outerRef} className="p-10 h-2/3 flex items-center justify-center">
       <div
-        className="bg-white relative overflow-hidden"
+        className="bg-white relative overflow-visible"
         style={{ width: displayW, height: displayH }}
       >
         <div

@@ -43,8 +43,8 @@ export function snapToCanvas(
   const ry = snapAxis(y, h, canvasHeight, threshold);
 
   return {
-    x: Math.max(0, rx.pos),
-    y: Math.max(0, ry.pos),
+    x: rx.pos,
+    y: ry.pos,
     guides: {
       vertical: rx.guide,
       horizontal: ry.guide,
