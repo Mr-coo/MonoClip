@@ -23,7 +23,16 @@ SUPPORTED_EXTENSIONS = {
 }
 
 
-@router.post("/transcribe", response_model=TranscriptionResponse)
+@router.post(
+    "/transcribe",
+    response_model=TranscriptionResponse,
+    summary="Transcribe audio/video to captions",
+    description=(
+        "Upload a media file (video or audio). "
+        "Returns timestamped caption segments detected by Whisper medium. "
+        f"Supported formats: {', '.join(SUPPORTED_EXTENSIONS)}"
+    ),
+)
 async def transcribe(file: UploadFile = File(...)) -> TranscriptionResponse:
     if not file.filename:
         raise HTTPException(

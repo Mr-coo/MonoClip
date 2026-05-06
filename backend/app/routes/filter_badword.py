@@ -71,7 +71,12 @@ def mask_badwords(text: str) -> str:
 	return BADWORD_PATTERN.sub("****", text)
 
 
-@router.post("/filter", response_model=TranscriptionResponse)
+@router.post(
+    "/filter",
+    response_model=TranscriptionResponse,
+    summary="Filter profanity from captions",
+    description="Masks profanity in caption segment texts using a rule-based word list (Bahasa Indonesia + English). Pass the full TranscriptionResponse from /transcribe.",
+)
 async def filter_badwords(payload: TranscriptionResponse) -> TranscriptionResponse:
 	filtered_segments: list[dict[str, object]] = []
 

@@ -18,7 +18,11 @@ MAX_FILE_SIZE = 200 * 1024 * 1024  # 200 MB
 _tracked_files: dict[str, str] = {}
 
 
-@router.get("/track/file/{filename}")
+@router.get(
+    "/track/file/{filename}",
+    summary="Download tracked video",
+    description="Serves the tracked output video produced by POST /track. The URL is returned in the `output_video_path` field of the tracking response.",
+)
 async def download_tracked_file(filename: str) -> FileResponse:
     if filename not in _tracked_files:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File not found.")
@@ -29,7 +33,16 @@ async def download_tracked_file(filename: str) -> FileResponse:
     return FileResponse(path, media_type="video/mp4", filename=filename)
 
 
-@router.post("/track", response_model=TrackingResponse)
+@router.post(
+    "/track",
+    response_model=TrackingResponse,
+    summary="Track object in video",
+    description=(
+        "Upload a video and specify a bounding box (x, y, w, h in source pixels) around the object to track. "
+        "Returns per-frame tracking data and a URL to download the zoomed output video via GET /track/file/{filename}. "
+        "Max file size: 200 MB."
+    ),
+)
 async def track_object(
     file: UploadFile = File(...),
     x: int = Form(...),
