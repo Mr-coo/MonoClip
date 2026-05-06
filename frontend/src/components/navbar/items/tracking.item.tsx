@@ -1,10 +1,9 @@
 import { useState, useMemo } from "react";
 import { MdMyLocation } from "react-icons/md";
-import { convertFileSrc } from "@tauri-apps/api/core";
 import { useMediaStore } from "../../../store/media.store";
 import { useEditorStore } from "../../../store/editor.store";
 import { DEFAULT_MEDIA_ASSET_SETTINGS } from "../../../types/mediaAsset";
-import { trackObject } from "../../../utils/api";
+import { trackObject, API_BASE } from "../../../utils/api";
 
 export default function TrackingItem() {
   const mediaAssets = useMediaStore((s) => s.assets);
@@ -42,7 +41,7 @@ export default function TrackingItem() {
         type: blob.type || "video/mp4",
       });
       const result = await trackObject(file, x, y, w, h, zoom);
-      const trackedPath = convertFileSrc(result.output_video_path);
+      const trackedPath = `${API_BASE}${result.output_video_path}`;
 
       // Probe the output video for duration/dimensions
       const video = document.createElement("video");

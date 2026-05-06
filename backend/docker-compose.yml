@@ -1,0 +1,11 @@
+services:
+  backend:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - whisper-cache:/root/.cache/whisper
+    restart: unless-stopped
+
+volumes:
+  whisper-cache:

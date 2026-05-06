@@ -4,6 +4,7 @@ from pathlib import Path
 
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile, status
 from fastapi.concurrency import run_in_threadpool
+from fastapi.responses import FileResponse
 
 from app.models.schema import BBox, TrackFrame, TrackingResponse
 from app.services.tracking_service import track_and_zoom
@@ -12,6 +13,20 @@ router = APIRouter(tags=["tracking"])
 
 SUPPORTED_EXTENSIONS = {".mp4", ".mov", ".mkv", ".avi", ".webm"}
 MAX_FILE_SIZE = 200 * 1024 * 1024  # 200 MB
+
+# Map of filename → absolute path for tracked output files
+_tracked_files: dict[str, str] = {}
+
+
+@router.get("/track/file/{filename}")
+async def download_tracked_file(filename: str) -> FileResponse:
+    if filename not in _tracked_files:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File not found.")
+    path = _tracked_files[filename]
+    if not os.path.exists(path):
+        _tracked_files.pop(filename, None)
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File has expired.")
+    return FileResponse(path, media_type="video/mp4", filename=filename)
 
 
 @router.post("/track", response_model=TrackingResponse)
@@ -64,14 +79,17 @@ async def track_object(
             temp_output_path,
         )
 
+        output_filename = Path(result.output_video_path).name
+        _tracked_files[output_filename] = result.output_video_path
+
         response = TrackingResponse(
-            output_video_path=result.output_video_path,
+            output_video_path=f"/track/file/{output_filename}",
             frames=[
                 TrackFrame(
                     frame_index=item["frame_index"],
                     timestamp=item["timestamp"],
                     bbox=BBox(**item["bbox"]),
-                    success=item["success"],
+                    success=item.get("success", item.get("tracking_success", False)),
                 )
                 for item in result.frames
             ],
@@ -93,6 +111,3 @@ async def track_object(
 
         if temp_file_path and os.path.exists(temp_file_path):
             os.remove(temp_file_path)
-
-        # if temp_output_path and os.path.exists(temp_output_path):
-        #     os.remove(temp_output_path)
