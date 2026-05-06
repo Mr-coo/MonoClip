@@ -5,20 +5,7 @@ import { useState, useMemo } from "react";
 import { useMediaStore } from "../../../store/media.store";
 import { useCaptionStore } from "../../../store/caption.store";
 import { useTimelineStore } from "../../../store/timeline.store";
-
-interface ApiSegment {
-  id: number;
-  start: number;
-  end: number;
-  text: string;
-}
-
-interface TranscriptionResponse {
-  language: string;
-  segments: ApiSegment[];
-}
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8000";
+import { transcribe, filterBadwords, type CaptionSegment } from "../../../utils/api";
 
 function fmt(s: number): string {
   const m = Math.floor(s / 60);
@@ -34,7 +21,7 @@ export default function CaptionItem() {
 
   const [activeAction, setActiveAction] = useState<"auto" | "filter" | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [rawSegments, setRawSegments] = useState<ApiSegment[] | null>(null);
+  const [rawSegments, setRawSegments] = useState<CaptionSegment[] | null>(null);
   const [language, setLanguage] = useState<string | null>(null);
 
   const latestTranscribable = useMemo(
@@ -57,18 +44,7 @@ export default function CaptionItem() {
       const file = new File([blob], latestTranscribable.name, {
         type: blob.type || "application/octet-stream",
       });
-      const form = new FormData();
-      form.append("file", file);
-
-      const res = await fetch(`${API_BASE_URL}/transcribe`, {
-        method: "POST",
-        body: form,
-      });
-      if (!res.ok) {
-        const body = (await res.json().catch(() => ({}))) as { detail?: string };
-        throw new Error(body.detail ?? "Transcription failed.");
-      }
-      const data = (await res.json()) as TranscriptionResponse;
+      const data = await transcribe(file);
       setRawSegments(data.segments);
       setLanguage(data.language);
       setSegments(data.segments);
@@ -80,7 +56,7 @@ export default function CaptionItem() {
   }
 
   async function handleFilterCaption() {
-    const source: ApiSegment[] =
+    const source: CaptionSegment[] =
       rawSegments ??
       segments.map((s, i) => ({ id: i, start: s.start, end: s.end, text: s.text }));
     if (!source.length) {
@@ -90,20 +66,7 @@ export default function CaptionItem() {
     setError(null);
     setActiveAction("filter");
     try {
-      const payload: TranscriptionResponse = {
-        language: language ?? "id",
-        segments: source as ApiSegment[],
-      };
-      const res = await fetch(`${API_BASE_URL}/caption/filter`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) {
-        const body = (await res.json().catch(() => ({}))) as { detail?: string };
-        throw new Error(body.detail ?? "Filter failed.");
-      }
-      const data = (await res.json()) as TranscriptionResponse;
+      const data = await filterBadwords({ language: language ?? "id", segments: source });
       setSegments(data.segments);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Unknown error.");

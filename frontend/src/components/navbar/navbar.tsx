@@ -5,12 +5,13 @@ import { PiTextTBold } from "react-icons/pi";
 import { LuCaptions } from "react-icons/lu";
 import { GoStarFill } from "react-icons/go";
 import { FaLayerGroup } from "react-icons/fa";
+import { MdMyLocation, MdOutlineArrowLeft, MdOutlineArrowRight } from "react-icons/md";
 import NavbarItem from "./navbar.item";
 import { Dispatch, SetStateAction, useState } from "react";
 import MediaItem from "./items/media.item";
 import CaptionItem from "./items/caption.item";
-import { MdOutlineArrowLeft, MdOutlineArrowRight } from "react-icons/md";
 import TextItem from "./items/text.item";
+import TrackingItem from "./items/tracking.item";
 
 export default function Navbar({isShowDetail, setIsShowDetail}:{isShowDetail:boolean, setIsShowDetail: Dispatch<SetStateAction<boolean>>}){
   const [openIndex, setOpenIndex] = useState<number | null>(null)
@@ -31,6 +32,11 @@ export default function Navbar({isShowDetail, setIsShowDetail}:{isShowDetail:boo
       icon: <LuCaptions className="text-typography" size={iconSize} />,
       label: "Captions",
       content: <CaptionItem/>
+    },
+    {
+      icon: <MdMyLocation className="text-typography" size={iconSize} />,
+      label: "Tracking",
+      content: <TrackingItem />,
     },
     {
       icon: <GoStarFill className="text-typography" size={iconSize} />,
