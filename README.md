@@ -1,9 +1,10 @@
 # MonoClip
 
+## Team Members
 A project by:
-- Marco Linardi
-- Johanes Cedrick
-- Villyan Sutanto
+- Marco Linardi: 
+- Johanes Cedrick: 
+- Villyan Sutanto: 
 
 ---
 
