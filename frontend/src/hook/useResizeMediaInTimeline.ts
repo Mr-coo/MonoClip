@@ -65,7 +65,7 @@ export function useResizeMediaInTimeline(mediaId: string, isStart: boolean) {
           Math.max(0, startTimeRef.current + actualDelta)
         );
         const nextStartInTimeline = Math.min(
-          endTimeRef.current - MIN_DURATION,
+          tlEndRef.current - MIN_DURATION,
           Math.max(0, clampedTlStart)
         );
         timelineStore.previewMoveMedia(

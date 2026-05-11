@@ -2,7 +2,7 @@ import { useMemo, useRef, useEffect } from "react";
 import { useTimelineStore } from "../../store/timeline.store";
 import { FaPlay, FaPause, FaScissors, FaPlus, FaMinus } from "react-icons/fa6";
 import { TiArrowSortedDown } from "react-icons/ti";
-import { useReziseTimeline } from "../../hook/useResizeTimeline";
+import { useResizeTimeline } from "../../hook/useResizeTimeline";
 import { useEditorStore } from "../../store/editor.store";
 import { TimelineMedia } from "./TimelineMediaAsset";
 import { useRewindTimeline } from "../../hook/useRewindTimeline";
@@ -20,7 +20,7 @@ function formatRulerLabel(seconds: number): string {
 export default function Timeline() {
   const { assets, currentTime, isPlaying, selectedAssetId, togglePlay, cutAsset, selectAsset } = useTimelineStore();
   const editorStore = useEditorStore();
-  const resizeTimelineHook = useReziseTimeline();
+  const resizeTimelineHook = useResizeTimeline();
   const rewindTimelineHook = useRewindTimeline();
   const containerRef = useRef<HTMLDivElement>(null);
   const pixelPerSecondRef = useRef(editorStore.pixelPerSecond);

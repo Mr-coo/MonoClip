@@ -1,5 +1,6 @@
 import { FaAlignLeft, FaAlignCenter, FaAlignRight, FaAlignJustify } from 'react-icons/fa6';
 import { useTimelineStore } from '../../../store/timeline.store';
+import { useEditorStore } from '../../../store/editor.store';
 import { DEFAULT_MEDIA_ASSET_SETTINGS, MediaAsset } from '../../../types/mediaAsset';
 import { DEFAULT_TEXT_STYLE, FONT_FAMILIES, FONT_WEIGHTS, TextStyle } from '../../../types/textStyle';
 import ButtonOutlined from '../../buttons/button.outlined';
@@ -47,6 +48,7 @@ export default function TextItem() {
   const addAsset = useTimelineStore(s => s.addAsset);
   const updateAsset = useTimelineStore(s => s.updateAsset);
 
+  const { canvasWidth, canvasHeight } = useEditorStore();
   const selectedAsset = assets.find(a => a.id === selectedAssetId && a.type === 'text') ?? null;
   const ts = selectedAsset?.textStyle ?? null;
 
@@ -58,9 +60,9 @@ export default function TextItem() {
   }
 
   function addText(fontSize: number, content: string) {
-    const width = Math.min(1600, Math.max(600, fontSize * 10));
-    const x = Math.round((1920 - width) / 2);
-    const y = 460;
+    const width = Math.min(canvasWidth, Math.max(Math.round(canvasWidth * 0.3125), fontSize * 10));
+    const x = Math.round((canvasWidth - width) / 2);
+    const y = Math.round(canvasHeight * 0.426);
     const asset: MediaAsset = {
       ...DEFAULT_MEDIA_ASSET_SETTINGS,
       type: 'text',

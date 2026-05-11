@@ -2,7 +2,7 @@ import { useRef } from "react";
 import { useEditorStore } from "../store/editor.store";
 import { usePointerDrag } from "./usePointerDrag";
 
-export function useReziseTimeline() {
+export function useResizeTimeline() {
   const store = useEditorStore();
   const startHeight = useRef(0);
 
