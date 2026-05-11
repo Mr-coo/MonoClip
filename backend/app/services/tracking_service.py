@@ -29,8 +29,10 @@ def _clamp(value: int, low: int, high: int) -> int:
 def _safe_crop_box(frame_width: int, frame_height: int, bbox: tuple[int, int, int, int], zoom_factor: float) -> tuple[int, int, int, int]:
     x, y, w, h = bbox
 
-    crop_w = max(1, int(w * zoom_factor))
-    crop_h = max(1, int(h * zoom_factor))
+    # Crop a frame-relative region so zoom_factor=2 always means 2× magnification,
+    # independent of bbox size. Clamped to at least the bbox dimensions.
+    crop_w = max(w, int(frame_width / zoom_factor))
+    crop_h = max(h, int(frame_height / zoom_factor))
 
     center_x = x + w // 2
     center_y = y + h // 2
@@ -94,14 +96,16 @@ def track_and_zoom(
             ok, frame = cap.read()
             if not ok:
                 break
-
-        success, bbox = tracker.update(frame)
-
-        if success:
-            bx, by, bw, bh = [int(v) for v in bbox]
-            last_bbox = (bx, by, bw, bh)
+            success, raw_bbox = tracker.update(frame)
+            if success:
+                bx, by, bw, bh = [int(v) for v in raw_bbox]
+                last_bbox = (bx, by, bw, bh)
+            else:
+                bx, by, bw, bh = last_bbox
         else:
-            bx, by, bw, bh = last_bbox
+            # Frame 0 was used to init the tracker; use the initial bbox directly.
+            success = True
+            bx, by, bw, bh = x, y, w, h
 
         sx, sy, sw, sh = smooth_bbox
         bx = int(smoothing_alpha * bx + (1 - smoothing_alpha) * sx)

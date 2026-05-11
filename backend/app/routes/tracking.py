@@ -102,7 +102,7 @@ async def track_object(
                     frame_index=item["frame_index"],
                     timestamp=item["timestamp"],
                     bbox=BBox(**item["bbox"]),
-                    success=item.get("success", item.get("tracking_success", False)),
+                    success=item["tracking_success"],
                 )
                 for item in result.frames
             ],
@@ -124,3 +124,5 @@ async def track_object(
 
         if temp_file_path and os.path.exists(temp_file_path):
             os.remove(temp_file_path)
+        if temp_output_path and temp_output_path not in _tracked_files.values() and os.path.exists(temp_output_path):
+            os.remove(temp_output_path)
