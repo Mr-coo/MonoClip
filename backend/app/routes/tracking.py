@@ -49,7 +49,7 @@ async def track_object(
     y: int = Form(...),
     w: int = Form(...),
     h: int = Form(...),
-    zoom_factor: float = Form(1.5),
+    zoom_factor: float = Form(1.5, gt=0, le=20),
 ) -> TrackingResponse:
 
     if not file.filename:

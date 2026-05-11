@@ -49,7 +49,7 @@ BADWORDS = set([
     "wtf", "dafuq",
     "fck", "fk", "fuk",
     "sh1t", "b1tch",
-    "a55hole", "shitting"
+    "a55hole", "shitting",
 
     "f*ck", "sh*t", "b*tch",
     "fucc", "fukkk", "fukk",
@@ -78,19 +78,16 @@ def mask_badwords(text: str) -> str:
     description="Masks profanity in caption segment texts using a rule-based word list (Bahasa Indonesia + English). Pass the full TranscriptionResponse from /transcribe.",
 )
 async def filter_badwords(payload: TranscriptionResponse) -> TranscriptionResponse:
-	filtered_segments: list[dict[str, object]] = []
-
-	for segment in payload.segments:
-		filtered_segments.append(
-			{
-				"id": segment.id,
-				"start": segment.start,
-				"end": segment.end,
-				"text": mask_badwords(segment.text),
-			}
-		)
-
-	return {
-		"language": payload.language,
-		"segments": filtered_segments,
-	}
+    from app.models.schema import CaptionSegment
+    return TranscriptionResponse(
+        language=payload.language,
+        segments=[
+            CaptionSegment(
+                id=segment.id,
+                start=segment.start,
+                end=segment.end,
+                text=mask_badwords(segment.text),
+            )
+            for segment in payload.segments
+        ],
+    )

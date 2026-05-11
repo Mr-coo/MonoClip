@@ -61,7 +61,8 @@ def track_and_zoom(
     if not cap.isOpened():
         raise RuntimeError("Video tidak bisa dibuka.")
 
-    fps = cap.get(cv2.CAP_PROP_FPS) or 30.0
+    raw_fps = cap.get(cv2.CAP_PROP_FPS)
+    fps = raw_fps if raw_fps > 0 else 30.0
     frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
@@ -91,61 +92,62 @@ def track_and_zoom(
 
     smooth_bbox = (x, y, w, h)
 
-    while True:
-        if frame_index > 0:
-            ok, frame = cap.read()
-            if not ok:
-                break
-            success, raw_bbox = tracker.update(frame)
-            if success:
-                bx, by, bw, bh = [int(v) for v in raw_bbox]
-                last_bbox = (bx, by, bw, bh)
+    try:
+        while True:
+            if frame_index > 0:
+                ok, frame = cap.read()
+                if not ok:
+                    break
+                success, raw_bbox = tracker.update(frame)
+                if success:
+                    bx, by, bw, bh = [int(v) for v in raw_bbox]
+                    last_bbox = (bx, by, bw, bh)
+                else:
+                    bx, by, bw, bh = last_bbox
             else:
-                bx, by, bw, bh = last_bbox
-        else:
-            # Frame 0 was used to init the tracker; use the initial bbox directly.
-            success = True
-            bx, by, bw, bh = x, y, w, h
+                # Frame 0 was used to init the tracker; use the initial bbox directly.
+                success = True
+                bx, by, bw, bh = x, y, w, h
 
-        sx, sy, sw, sh = smooth_bbox
-        bx = int(smoothing_alpha * bx + (1 - smoothing_alpha) * sx)
-        by = int(smoothing_alpha * by + (1 - smoothing_alpha) * sy)
-        bw = int(smoothing_alpha * bw + (1 - smoothing_alpha) * sw)
-        bh = int(smoothing_alpha * bh + (1 - smoothing_alpha) * sh)
+            sx, sy, sw, sh = smooth_bbox
+            bx = int(smoothing_alpha * bx + (1 - smoothing_alpha) * sx)
+            by = int(smoothing_alpha * by + (1 - smoothing_alpha) * sy)
+            bw = int(smoothing_alpha * bw + (1 - smoothing_alpha) * sw)
+            bh = int(smoothing_alpha * bh + (1 - smoothing_alpha) * sh)
 
-        smooth_bbox = (bx, by, bw, bh)
+            smooth_bbox = (bx, by, bw, bh)
 
-        crop_left, crop_top, crop_w, crop_h = _safe_crop_box(
-            frame_width,
-            frame_height,
-            (bx, by, bw, bh),
-            zoom_factor,
-        )
+            crop_left, crop_top, crop_w, crop_h = _safe_crop_box(
+                frame_width,
+                frame_height,
+                (bx, by, bw, bh),
+                zoom_factor,
+            )
 
-        crop = frame[crop_top:crop_top + crop_h, crop_left:crop_left + crop_w]
+            crop = frame[crop_top:crop_top + crop_h, crop_left:crop_left + crop_w]
 
-        zoomed = cv2.resize(crop, (frame_width, frame_height), interpolation=cv2.INTER_CUBIC)
+            zoomed = cv2.resize(crop, (frame_width, frame_height), interpolation=cv2.INTER_CUBIC)
 
-        writer.write(zoomed)
+            writer.write(zoomed)
 
-        frames.append(
-            {
-                "frame_index": frame_index,
-                "timestamp": frame_index / fps,
-                "bbox": {
-                    "x": bx,
-                    "y": by,
-                    "w": bw,
-                    "h": bh,
-                },
-                "tracking_success": success,
-            }
-        )
+            frames.append(
+                {
+                    "frame_index": frame_index,
+                    "timestamp": frame_index / fps,
+                    "bbox": {
+                        "x": bx,
+                        "y": by,
+                        "w": bw,
+                        "h": bh,
+                    },
+                    "tracking_success": success,
+                }
+            )
 
-        frame_index += 1
-
-    cap.release()
-    writer.release()
+            frame_index += 1
+    finally:
+        cap.release()
+        writer.release()
 
     return TrackingResult(
         output_video_path=output_path,

@@ -3,6 +3,7 @@ import tempfile
 from pathlib import Path
 
 from fastapi import APIRouter, File, HTTPException, UploadFile, status
+from fastapi.concurrency import run_in_threadpool
 
 from app.models.schema import TranscriptionResponse
 from app.services.whisper_service import transcribe_media
@@ -54,7 +55,7 @@ async def transcribe(file: UploadFile = File(...)) -> TranscriptionResponse:
                 temp_file.write(chunk)
             temp_file_path = temp_file.name
 
-        result = transcribe_media(temp_file_path)
+        result = await run_in_threadpool(transcribe_media, temp_file_path)
         formatted_result = format_to_json(result)
         return TranscriptionResponse(**formatted_result)
     except HTTPException:
