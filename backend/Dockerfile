@@ -19,7 +19,7 @@ RUN pip install --no-cache-dir --no-build-isolation -r requirements.txt
 COPY app/ ./app/
 
 # Pre-download Whisper model at build time so the server starts instantly
-RUN python -c "import whisper; whisper.load_model('medium')"
+RUN python -c "import whisper; whisper.load_model('tiny')"
 
 EXPOSE 8000
 

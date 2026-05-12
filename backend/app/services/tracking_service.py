@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -20,6 +21,25 @@ def _create_tracker() -> Any:
     if hasattr(cv2, "TrackerCSRT_create"):
         return cv2.TrackerCSRT_create()
     raise RuntimeError("OpenCV tracker CSRT tidak tersedia di environment ini.")
+
+
+def _reencode_h264(src: str, dst: str) -> None:
+    """Re-encode an OpenCV-written mp4v file to H.264/yuv420p for WebView2 compatibility."""
+    subprocess.run(
+        [
+            "ffmpeg", "-y",
+            "-i", src,
+            "-c:v", "libx264",
+            "-preset", "fast",
+            "-crf", "23",
+            "-pix_fmt", "yuv420p",
+            "-movflags", "+faststart",
+            dst,
+        ],
+        check=True,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
 
 
 def _clamp(value: int, low: int, high: int) -> int:
@@ -79,8 +99,9 @@ def track_and_zoom(
     if output_path is None:
         output_path = str(Path(video_path).with_suffix(".tracked.mp4"))
 
+    raw_path = output_path + ".raw.mp4"
     fourcc = cv2.VideoWriter_fourcc(*"mp4v")
-    writer = cv2.VideoWriter(output_path, fourcc, fps, (frame_width, frame_height))
+    writer = cv2.VideoWriter(raw_path, fourcc, fps, (frame_width, frame_height))
     if not writer.isOpened():
         cap.release()
         raise RuntimeError("VideoWriter tidak bisa dibuat.")
@@ -148,6 +169,12 @@ def track_and_zoom(
     finally:
         cap.release()
         writer.release()
+
+    try:
+        _reencode_h264(raw_path, output_path)
+    finally:
+        if os.path.exists(raw_path):
+            os.remove(raw_path)
 
     return TrackingResult(
         output_video_path=output_path,

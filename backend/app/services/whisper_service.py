@@ -4,7 +4,7 @@ from typing import Any
 import whisper
 
 
-DEFAULT_MODEL_NAME = "medium"
+DEFAULT_MODEL_NAME = "tiny"
 
 
 @lru_cache(maxsize=1)
