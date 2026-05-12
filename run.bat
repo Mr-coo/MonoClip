@@ -9,7 +9,7 @@ echo Starting MonoClip Backend (Docker)...
 start "MonoClip - Backend" cmd /k "cd /d "%BACKEND%" && docker compose up --build"
 
 echo Starting MonoClip Frontend...
-start "MonoClip - Frontend" cmd /k "cd /d "%FRONTEND%" && npm run dev"
+start "MonoClip - Frontend" cmd /k "cd /d "%FRONTEND%" && npm run tauri dev"
 
 echo.
 echo Both services are starting in separate windows.
