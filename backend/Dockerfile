@@ -18,9 +18,6 @@ RUN pip install --no-cache-dir --no-build-isolation -r requirements.txt
 
 COPY app/ ./app/
 
-# Pre-download Whisper model at build time so the server starts instantly
-RUN python -c "import whisper; whisper.load_model('tiny')"
-
 EXPOSE 8000
 
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

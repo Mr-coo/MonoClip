@@ -132,13 +132,20 @@ pub async fn execute(assets: &[MediaAsset], output_path: &str, canvas_width: u32
     let mut audio_filter_count = 0usize;
     for (i, asset) in visuals.iter().enumerate() {
         if asset.asset_type == "video" {
-            filters.push(format!("[{}:a]apad[aa{audio_filter_count}]", i + 1));
+            filters.push(format!(
+                "[{}:a]apad,atrim=end={:.3}[aa{audio_filter_count}]",
+                i + 1,
+                total_duration
+            ));
             audio_filter_count += 1;
         }
     }
     for j in 0..audio_only.len() {
         let idx = visuals.len() + 1 + j;
-        filters.push(format!("[{idx}:a]apad[aa{audio_filter_count}]"));
+        filters.push(format!(
+            "[{idx}:a]apad,atrim=end={:.3}[aa{audio_filter_count}]",
+            total_duration
+        ));
         audio_filter_count += 1;
     }
 
@@ -171,6 +178,7 @@ pub async fn execute(assets: &[MediaAsset], output_path: &str, canvas_width: u32
         "-crf".into(), "23".into(),
         "-preset".into(), "fast".into(),
         "-pix_fmt".into(), "yuv420p".into(),
+        "-movflags".into(), "+faststart".into(),
         "-t".into(), format!("{:.3}", total_duration),
     ]);
     if has_audio {

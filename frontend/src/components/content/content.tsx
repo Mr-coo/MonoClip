@@ -59,6 +59,7 @@ export default function Content() {
             <div
               className="absolute left-0 w-full text-center pointer-events-none select-none"
               style={{
+                zIndex: 9998,
                 bottom: Math.round(canvasHeight * 0.074),
                 padding: `0 ${Math.round(canvasWidth * 0.083)}px`,
                 fontSize: Math.round(canvasHeight * 0.059),
