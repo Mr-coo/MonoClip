@@ -209,7 +209,7 @@ fn build_drawtext(asset: &MediaAsset, ts: &TextStyle) -> String {
     let font      = map_font(&ts.font_family);
 
     let mut parts = vec![
-        format!("text='{text}'"),
+        format!("text={text}"),
         format!("x={x_expr}"),
         format!("y={y}"),
         format!("fontsize={fontsize}"),
