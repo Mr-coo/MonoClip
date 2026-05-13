@@ -1,9 +1,19 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
+from fastapi.concurrency import run_in_threadpool
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.routes.filter_badword import router as filter_badword_router
 from app.routes.transcribe import router as transcribe_router
 from app.routes.tracking import router as tracking_router
+from app.services.whisper_service import get_whisper_model
+
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    await run_in_threadpool(get_whisper_model)
+    yield
 
 
 TAGS_METADATA = [
@@ -26,6 +36,7 @@ app = FastAPI(
     description="Backend service for MonoClip — AI transcription, caption filtering, and object tracking.",
     version="1.0.0",
     openapi_tags=TAGS_METADATA,
+    lifespan=lifespan,
 )
 
 app.add_middleware(

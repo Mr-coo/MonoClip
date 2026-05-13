@@ -128,10 +128,11 @@ pub async fn execute(assets: &[MediaAsset], output_path: &str, canvas_width: u32
     }
 
     // Audio mixing: video audio tracks + audio-only files, each padded so amix
-    // doesn't stop when the shortest stream ends.
+    // doesn't stop when the shortest stream ends. Probe each video first so we
+    // don't reference [N:a] for clips that have no audio (e.g. tracker output).
     let mut audio_filter_count = 0usize;
     for (i, asset) in visuals.iter().enumerate() {
-        if asset.asset_type == "video" {
+        if asset.asset_type == "video" && runner::has_audio_stream(&asset.path) {
             filters.push(format!(
                 "[{}:a]apad,atrim=end={:.3}[aa{audio_filter_count}]",
                 i + 1,
@@ -238,11 +239,29 @@ fn build_drawtext(asset: &MediaAsset, ts: &TextStyle) -> String {
     format!("drawtext={}", parts.join(":"))
 }
 
-// Escape characters that FFmpeg's drawtext option parser treats as special.
+// FFmpeg parses the filter_complex string TWICE: once at the graph level
+// (where `,;[]\n` are special and `\X` / `'...'` are escapes), and once at the
+// filter level (where `:` is the option separator and `\X` / `'...'` are
+// escapes again). To survive both passes, each special char must be encoded
+// so that one layer of \-escaping remains after graph parsing for the filter
+// parser to consume.
+//
+//   `\` →  \\\\   (graph → \\, filter → \)
+//   `'` →  \\\'   (graph → \', filter → ')
+//   `:` →  \\:    (graph → :  is fine, but filter sees `:` as terminator →
+//                  needs \: so filter resolves to literal `:`)
+//                  graph leaves `\:` alone (`:` not in graph terminator set),
+//                  so we just want `\:` to reach the filter — input `\\:`
+//   `,` →  \,     (graph terminator → escape so graph emits `,`; filter sees
+//                  `,` which is literal in option values)
 fn escape_drawtext(s: &str) -> String {
-    s.replace('\\', "\\\\")
-     .replace('\'', "\\'")
-     .replace(':', "\\:")
+    s.replace('\\', "\\\\\\\\")
+     .replace('\'', "\\\\\\'")
+     .replace(':', "\\\\:")
+     .replace(',', "\\,")
+     .replace(';', "\\;")
+     .replace('[', "\\[")
+     .replace(']', "\\]")
 }
 
 // Convert a #RRGGBB hex string + 0-1 alpha to FFmpeg's 0xRRGGBB@alpha format.

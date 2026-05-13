@@ -1,6 +1,7 @@
 import { useState, useMemo, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { MdMyLocation, MdOpenInFull, MdCheck, MdClose } from "react-icons/md";
+import { invoke, convertFileSrc } from "@tauri-apps/api/core";
 import { useMediaStore } from "../../../store/media.store";
 import { useEditorStore } from "../../../store/editor.store";
 import { DEFAULT_MEDIA_ASSET_SETTINGS } from "../../../types/mediaAsset";
@@ -339,7 +340,17 @@ export default function TrackingItem() {
       const blob = await (await fetch(selectedAsset.path)).blob();
       const file = new File([blob], selectedAsset.name, { type: blob.type || "video/mp4" });
       const result = await trackObject(file, confirmedBbox.x, confirmedBbox.y, confirmedBbox.w, confirmedBbox.h, zoom);
-      const trackedPath = `${API_BASE}${result.output_video_path}`;
+      const remoteUrl = `${API_BASE}${result.output_video_path}`;
+
+      // Persist the tracked video to local app-data so export reads a file path,
+      // not an HTTP URL that depends on the backend still being up.
+      const remoteFilename = result.output_video_path.split("/").pop() || `tracked_${Date.now()}.mp4`;
+      const localFilename = `${crypto.randomUUID()}_${remoteFilename}`;
+      const localPath = await invoke<string>("download_to_app_data", {
+        url: remoteUrl,
+        filename: localFilename,
+      });
+      const trackedPath = convertFileSrc(localPath);
 
       const vid = document.createElement("video");
       vid.src = trackedPath;
