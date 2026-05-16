@@ -1,11 +1,18 @@
 import { FaClosedCaptioning } from "react-icons/fa";
-import { MdDelete, MdFilterAlt, MdAdd } from "react-icons/md";
+import { MdDelete, MdFilterAlt, MdAdd, MdTranslate } from "react-icons/md";
 import { FiDownload } from "react-icons/fi";
-import { useState, useMemo } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useMediaStore } from "../../../store/media.store";
 import { useCaptionStore } from "../../../store/caption.store";
 import { useTimelineStore } from "../../../store/timeline.store";
-import { transcribe, filterBadwords, type CaptionSegment } from "../../../utils/api";
+import {
+  transcribe,
+  filterBadwords,
+  translateCaptions,
+  listTranslationTargets,
+  type CaptionSegment,
+  type TranslationTarget,
+} from "../../../utils/api";
 
 function fmt(s: number): string {
   const m = Math.floor(s / 60);
@@ -19,10 +26,20 @@ export default function CaptionItem() {
     useCaptionStore();
   const currentTime = useTimelineStore((s) => s.currentTime);
 
-  const [activeAction, setActiveAction] = useState<"auto" | "filter" | null>(null);
+  const [activeAction, setActiveAction] = useState<"auto" | "filter" | "translate" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [rawSegments, setRawSegments] = useState<CaptionSegment[] | null>(null);
   const [language, setLanguage] = useState<string | null>(null);
+  const [targets, setTargets] = useState<TranslationTarget[]>([]);
+  const [targetLang, setTargetLang] = useState<string>("en");
+
+  useEffect(() => {
+    let cancelled = false;
+    listTranslationTargets()
+      .then((list) => { if (!cancelled) setTargets(list); })
+      .catch(() => { /* backend not running — leave dropdown disabled */ });
+    return () => { cancelled = true; };
+  }, []);
 
   const latestTranscribable = useMemo(
     () =>
@@ -45,6 +62,36 @@ export default function CaptionItem() {
         type: blob.type || "application/octet-stream",
       });
       const data = await transcribe(file);
+      setRawSegments(data.segments);
+      setLanguage(data.language);
+      setSegments(data.segments);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Unknown error.");
+    } finally {
+      setActiveAction(null);
+    }
+  }
+
+  async function handleTranslate() {
+    const source: CaptionSegment[] =
+      rawSegments ??
+      segments.map((s, i) => ({ id: i, start: s.start, end: s.end, text: s.text }));
+    if (!source.length) {
+      setError("Generate captions first before translating.");
+      return;
+    }
+    if (!targetLang) {
+      setError("Pick a target language.");
+      return;
+    }
+    setError(null);
+    setActiveAction("translate");
+    try {
+      const data = await translateCaptions({
+        source_lang: language ?? "en",
+        target_lang: targetLang,
+        segments: source,
+      });
       setRawSegments(data.segments);
       setLanguage(data.language);
       setSegments(data.segments);
@@ -141,6 +188,36 @@ export default function CaptionItem() {
         >
           <FiDownload size={18} />
           Download
+        </button>
+      </div>
+
+      {/* Translate row */}
+      <div className="w-full mt-3 flex items-center gap-2">
+        <select
+          value={targetLang}
+          onChange={(e) => setTargetLang(e.target.value)}
+          disabled={activeAction !== null || targets.length === 0}
+          className="flex-1 bg-base text-typography text-xs px-2 py-1.5 rounded border border-shadow/50 outline-none cursor-pointer hover:border-shadow disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          title="Target language"
+        >
+          {targets.length === 0 ? (
+            <option value="">— languages unavailable —</option>
+          ) : (
+            targets.map((t) => (
+              <option key={t.code} value={t.code} className="bg-dark">
+                {t.name} ({t.code})
+              </option>
+            ))
+          )}
+        </select>
+        <button
+          onClick={handleTranslate}
+          disabled={activeAction !== null || segments.length === 0 || targets.length === 0}
+          className="flex items-center gap-1 bg-shadow px-3 py-1.5 rounded text-xs hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-opacity"
+          title="Translate caption text into the selected language"
+        >
+          <MdTranslate size={14} />
+          {activeAction === "translate" ? "Translating…" : "Translate"}
         </button>
       </div>
 
