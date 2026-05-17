@@ -18,13 +18,20 @@ function formatRulerLabel(seconds: number): string {
 }
 
 export default function Timeline() {
-  const { assets, currentTime, isPlaying, selectedAssetId, togglePlay, cutAsset, selectAsset } = useTimelineStore();
+  const { assets, currentTime, isPlaying, selectedAssetId, togglePlay, cutAsset, selectAsset, setCurrentTime } = useTimelineStore();
   const editorStore = useEditorStore();
   const resizeTimelineHook = useResizeTimeline();
   const rewindTimelineHook = useRewindTimeline();
   const containerRef = useRef<HTMLDivElement>(null);
   const pixelPerSecondRef = useRef(editorStore.pixelPerSecond);
   pixelPerSecondRef.current = editorStore.pixelPerSecond;
+
+  function seekToClick(e: React.MouseEvent<HTMLDivElement>) {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const time = Math.max(0, x / editorStore.pixelPerSecond);
+    setCurrentTime(time);
+  }
 
   const totalDuration = useMemo(() => {
     if (assets.length === 0) return 120;
@@ -153,8 +160,9 @@ export default function Timeline() {
 
         {/* Ruler */}
         <div
-          className="bg-mid-300 h-8 relative flex-shrink-0"
+          className="bg-mid-300 h-8 relative flex-shrink-0 cursor-pointer"
           style={{ width: `${timelineWidth}px` }}
+          onClick={seekToClick}
         >
           {Array(rulerSeconds)
             .fill(0)
@@ -181,9 +189,12 @@ export default function Timeline() {
 
         {/* Clips + layer dividers */}
         <div
-          className="relative"
+          className="relative cursor-pointer"
           style={{ width: `${timelineWidth}px`, height: `${contentHeight}px` }}
-          onClick={() => selectAsset(null)}
+          onClick={(e) => {
+            selectAsset(null);
+            seekToClick(e);
+          }}
         >
           {sortedMedias.map((media, i) => (
             <TimelineMedia key={i} media={media} />
