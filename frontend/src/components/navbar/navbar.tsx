@@ -15,9 +15,11 @@ import TextItem from "./items/text.item";
 import TrackingItem from "./items/tracking.item";
 import SmartCutItem from "./items/smartcut.item";
 import BgRemoveItem from "./items/bgremove.item";
+import { KeyboardShortcutsModal } from "../topbar/KeyboardShortcutsModal";
 
 export default function Navbar({isShowDetail, setIsShowDetail}:{isShowDetail:boolean, setIsShowDetail: Dispatch<SetStateAction<boolean>>}){
   const [openIndex, setOpenIndex] = useState<number | null>(null)
+  const [showShortcuts, setShowShortcuts] = useState(false)
 
   const iconSize = 25;
   const items = [
@@ -78,9 +80,14 @@ export default function Navbar({isShowDetail, setIsShowDetail}:{isShowDetail:boo
             />
           ))}
         </div>
-        <div className="min-w-10 min-h-10 hover:scale-105 hover:-translate-y-2 transition-all duration-200 flex justify-center items-center flex-col rounded-lg">
-            <FaKeyboard className="text-typography" size={20}/>
-        </div> 
+        <button
+          onClick={() => setShowShortcuts(true)}
+          title="Keyboard shortcuts"
+          className="min-w-10 min-h-10 hover:scale-105 hover:-translate-y-2 transition-all duration-200 flex justify-center items-center flex-col rounded-lg"
+        >
+          <FaKeyboard className="text-typography" size={20}/>
+        </button>
+        {showShortcuts && <KeyboardShortcutsModal onClose={() => setShowShortcuts(false)} />}
       </div>
       <div 
         className={`absolute text-typography bg-dark w-80 h-screen p-3 shadow-[0_0px_10px] shadow-black z-9 ${isShowDetail?"left-20":"-left-60"} transition-all duration-200`}

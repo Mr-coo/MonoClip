@@ -9,9 +9,8 @@ import { DEFAULT_MEDIA_ASSET_SETTINGS } from "../../types/mediaAsset";
 import { DEFAULT_TEXT_STYLE } from "../../types/textStyle";
 import { saveProject, loadProject } from "../../utils/project";
 import { FiSave, FiRotateCcw, FiRotateCw } from "react-icons/fi";
-import { MdFolderOpen, MdKeyboard } from "react-icons/md";
+import { MdFolderOpen } from "react-icons/md";
 import { useHistoryStore } from "../../store/history.store";
-import { KeyboardShortcutsModal } from "./KeyboardShortcutsModal";
 
 const RATIO_PRESETS: Record<string, [number, number]> = {
   "16:9":  [1920, 1080],
@@ -60,7 +59,6 @@ export default function Topbar() {
   }
 
   const [fileName, setFileName] = useState("Untitled");
-  const [showShortcuts, setShowShortcuts] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
   const [exportDone, setExportDone] = useState(false);
@@ -175,7 +173,6 @@ export default function Topbar() {
   }
 
   return (
-    <>
     <div className="bg-mid py-3 px-8 flex justify-between items-center gap-4">
       <div className="flex items-center gap-3">
         <input
@@ -219,13 +216,6 @@ export default function Topbar() {
             className="p-1.5 text-typography/70 hover:text-typography disabled:opacity-30 disabled:cursor-not-allowed transition-colors rounded hover:bg-white/5"
           >
             <FiRotateCw size={14} />
-          </button>
-          <button
-            onClick={() => setShowShortcuts(true)}
-            title="Keyboard shortcuts"
-            className="p-1.5 text-typography/70 hover:text-typography transition-colors rounded hover:bg-white/5"
-          >
-            <MdKeyboard size={16} />
           </button>
         </div>
 
@@ -296,7 +286,5 @@ export default function Topbar() {
       </div>
     </div>
 
-    {showShortcuts && <KeyboardShortcutsModal onClose={() => setShowShortcuts(false)} />}
-    </>
   );
 }
