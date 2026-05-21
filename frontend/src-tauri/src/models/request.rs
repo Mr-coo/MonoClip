@@ -62,4 +62,14 @@ pub struct MediaAsset {
     pub height: f64,
     #[serde(rename = "textStyle", default)]
     pub text_style: Option<TextStyle>,
+    #[serde(default = "default_volume")]
+    pub volume: f64,
+    #[serde(default)]
+    pub muted: bool,
+    #[serde(rename = "fadeIn", default)]
+    pub fade_in: f64,
+    #[serde(rename = "fadeOut", default)]
+    pub fade_out: f64,
 }
+
+fn default_volume() -> f64 { 1.0 }

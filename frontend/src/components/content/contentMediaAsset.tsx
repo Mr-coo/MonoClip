@@ -46,6 +46,21 @@ export function ContentMediaAsset({ asset }: { asset: MediaAsset }) {
         media.currentTime = localTime;
       }
 
+      const clipDuration = asset.endTime - asset.startTime;
+      const tInClip = currentTime - asset.startInTimeLine;
+      const baseVolume = asset.volume ?? 1;
+      const fadeIn = asset.fadeIn ?? 0;
+      const fadeOut = asset.fadeOut ?? 0;
+      let gain = baseVolume;
+      if (fadeIn > 0 && tInClip < fadeIn) {
+        gain *= Math.max(0, tInClip / fadeIn);
+      }
+      if (fadeOut > 0 && tInClip > clipDuration - fadeOut) {
+        gain *= Math.max(0, (clipDuration - tInClip) / fadeOut);
+      }
+      media.muted = asset.muted ?? false;
+      media.volume = Math.min(1, Math.max(0, gain));
+
       isPlaying ? media.play() : media.pause();
     } else if (media instanceof HTMLVideoElement) {
       media.pause();

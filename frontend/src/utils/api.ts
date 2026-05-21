@@ -58,6 +58,46 @@ export async function filterBadwords(
   return res.json() as Promise<TranscriptionResponse>;
 }
 
+export interface TranslationTarget {
+  code: string;
+  name: string;
+}
+
+export async function listTranslationTargets(): Promise<TranslationTarget[]> {
+  const res = await fetch(`${API_BASE}/caption/translate/languages`);
+  await checkResponse(res);
+  const body = (await res.json()) as { targets: TranslationTarget[] };
+  return body.targets;
+}
+
+export async function translateCaptions(payload: {
+  source_lang: string;
+  target_lang: string;
+  segments: CaptionSegment[];
+}): Promise<TranscriptionResponse> {
+  const res = await fetch(`${API_BASE}/caption/translate`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  await checkResponse(res);
+  return res.json() as Promise<TranscriptionResponse>;
+}
+
+export interface BgRemoveResponse {
+  output_path: string;
+  media_kind: "img" | "video";
+  filename: string;
+}
+
+export async function removeBackground(file: File): Promise<BgRemoveResponse> {
+  const form = new FormData();
+  form.append("file", file);
+  const res = await fetch(`${API_BASE}/bgremove`, { method: "POST", body: form });
+  await checkResponse(res);
+  return res.json() as Promise<BgRemoveResponse>;
+}
+
 export async function trackObject(
   file: File,
   x: number,

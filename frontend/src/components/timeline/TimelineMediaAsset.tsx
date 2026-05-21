@@ -1,9 +1,11 @@
+import { useState } from "react";
 import { useMoveMediaInTimeline } from "../../hook/useMoveMediaInTimeline";
 import { useResizeMediaInTimeline } from "../../hook/useResizeMediaInTimeline";
 import { useEditorStore } from "../../store/editor.store";
 import { useTimelineStore } from "../../store/timeline.store";
 import { MediaAsset } from "../../types/mediaAsset";
-import { MdClose } from "react-icons/md";
+import { MdClose, MdVolumeUp, MdVolumeOff } from "react-icons/md";
+import { AudioPopover } from "./AudioPopover";
 
 export function TimelineMedia({ media }: { media: MediaAsset }) {
   const editorStore = useEditorStore();
@@ -12,6 +14,9 @@ export function TimelineMedia({ media }: { media: MediaAsset }) {
   const moveMedia = useMoveMediaInTimeline(media.id);
   const resizeLeftMedia = useResizeMediaInTimeline(media.id, true);
   const resizeRightMedia = useResizeMediaInTimeline(media.id, false);
+  const [audioOpen, setAudioOpen] = useState(false);
+  const hasAudio = media.type === "video" || media.type === "audio";
+  const isMuted = media.muted ?? false;
 
   const left = media.startInTimeLine * editorStore.pixelPerSecond;
   const dragDurationLeft =
@@ -83,7 +88,39 @@ export function TimelineMedia({ media }: { media: MediaAsset }) {
             <MdClose size={10} />
           </button>
         )}
+
+        {/* Audio button — visible for video/audio clips */}
+        {hasAudio && (
+          <button
+            className={`absolute bottom-0.5 left-0.5 z-20 rounded-sm flex items-center justify-center w-4 h-4 ${
+              isMuted
+                ? "bg-red-600/80 hover:bg-red-600 text-white"
+                : "bg-black/50 hover:bg-black/80 text-white"
+            }`}
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.stopPropagation();
+              setAudioOpen((v) => !v);
+            }}
+            title="Audio settings"
+          >
+            {isMuted ? <MdVolumeOff size={10} /> : <MdVolumeUp size={10} />}
+          </button>
+        )}
       </div>
+
+      {hasAudio && audioOpen && (
+        <div
+          className="absolute"
+          style={{ left, top: top + 36, zIndex: 60 }}
+        >
+          <AudioPopover
+            media={media}
+            placement={top < 200 ? "below" : "above"}
+            onClose={() => setAudioOpen(false)}
+          />
+        </div>
+      )}
 
       {/* Right resize handle */}
       <div

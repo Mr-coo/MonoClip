@@ -4,9 +4,11 @@ from fastapi import FastAPI
 from fastapi.concurrency import run_in_threadpool
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.routes.bgremove import router as bgremove_router
 from app.routes.filter_badword import router as filter_badword_router
 from app.routes.transcribe import router as transcribe_router
 from app.routes.tracking import router as tracking_router
+from app.routes.translate import router as translate_router
 from app.services.whisper_service import get_whisper_model
 
 
@@ -29,6 +31,10 @@ TAGS_METADATA = [
         "name": "tracking",
         "description": "Track an object in a video using CSRT and apply auto-zoom. Returns a downloadable tracked video.",
     },
+    {
+        "name": "bgremove",
+        "description": "AI background removal for images (RGBA PNG) and videos (VP9 WebM with alpha) using rembg / U2Net.",
+    },
 ]
 
 app = FastAPI(
@@ -49,7 +55,9 @@ app.add_middleware(
 
 app.include_router(transcribe_router)
 app.include_router(filter_badword_router)
+app.include_router(translate_router)
 app.include_router(tracking_router)
+app.include_router(bgremove_router)
 
 
 @app.get("/health")

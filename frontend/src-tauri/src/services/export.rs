@@ -130,23 +130,25 @@ pub async fn execute(assets: &[MediaAsset], output_path: &str, canvas_width: u32
     // Audio mixing: video audio tracks + audio-only files, each padded so amix
     // doesn't stop when the shortest stream ends. Probe each video first so we
     // don't reference [N:a] for clips that have no audio (e.g. tracker output).
+    // Muted clips are skipped entirely.
     let mut audio_filter_count = 0usize;
     for (i, asset) in visuals.iter().enumerate() {
-        if asset.asset_type == "video" && runner::has_audio_stream(&asset.path) {
-            filters.push(format!(
-                "[{}:a]apad,atrim=end={:.3}[aa{audio_filter_count}]",
-                i + 1,
-                total_duration
-            ));
+        if asset.asset_type == "video"
+            && !asset.muted
+            && runner::has_audio_stream(&asset.path)
+        {
+            let input = format!("[{}:a]", i + 1);
+            let out = format!("[aa{audio_filter_count}]");
+            filters.push(build_audio_chain(asset, &input, &out, total_duration));
             audio_filter_count += 1;
         }
     }
-    for j in 0..audio_only.len() {
+    for (j, asset) in audio_only.iter().enumerate() {
+        if asset.muted { continue; }
         let idx = visuals.len() + 1 + j;
-        filters.push(format!(
-            "[{idx}:a]apad,atrim=end={:.3}[aa{audio_filter_count}]",
-            total_duration
-        ));
+        let input = format!("[{idx}:a]");
+        let out = format!("[aa{audio_filter_count}]");
+        filters.push(build_audio_chain(asset, &input, &out, total_duration));
         audio_filter_count += 1;
     }
 
@@ -189,6 +191,37 @@ pub async fn execute(assets: &[MediaAsset], output_path: &str, canvas_width: u32
     args.push(output_path.into());
 
     runner::run(args).await
+}
+
+// Build a per-asset audio filter chain: volume → fade in → fade out → apad → atrim.
+// Fade `st` values use timeline-absolute PTS because `-itsoffset` has already shifted
+// the input stream's timestamps.
+fn build_audio_chain(
+    asset: &MediaAsset,
+    input_label: &str,
+    out_label: &str,
+    total_duration: f64,
+) -> String {
+    let duration = asset.end_time - asset.start_time;
+    let start = asset.start_in_time_line;
+    let mut chain: Vec<String> = Vec::new();
+
+    if (asset.volume - 1.0).abs() > 1e-6 {
+        chain.push(format!("volume={:.3}", asset.volume));
+    }
+    if asset.fade_in > 0.0 {
+        let d = asset.fade_in.min(duration);
+        chain.push(format!("afade=t=in:st={:.3}:d={:.3}", start, d));
+    }
+    if asset.fade_out > 0.0 {
+        let d = asset.fade_out.min(duration);
+        let st = start + duration - d;
+        chain.push(format!("afade=t=out:st={:.3}:d={:.3}", st, d));
+    }
+    chain.push("apad".into());
+    chain.push(format!("atrim=end={:.3}", total_duration));
+
+    format!("{input_label}{}{out_label}", chain.join(","))
 }
 
 // Build a drawtext filter string (no surrounding stream labels — caller adds those).

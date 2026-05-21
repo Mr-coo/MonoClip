@@ -2,9 +2,10 @@ import { FaKeyboard } from "react-icons/fa";
 import logo from '../../../public/logo.png'
 import { HiUpload } from "react-icons/hi";
 import { PiTextTBold } from "react-icons/pi";
-import { LuCaptions } from "react-icons/lu";
+import { LuCaptions, LuScissors } from "react-icons/lu";
 import { GoStarFill } from "react-icons/go";
 import { FaLayerGroup } from "react-icons/fa";
+import { TbBackground } from "react-icons/tb";
 import { MdMyLocation, MdOutlineArrowLeft, MdOutlineArrowRight } from "react-icons/md";
 import NavbarItem from "./navbar.item";
 import { Dispatch, SetStateAction, useState } from "react";
@@ -12,6 +13,8 @@ import MediaItem from "./items/media.item";
 import CaptionItem from "./items/caption.item";
 import TextItem from "./items/text.item";
 import TrackingItem from "./items/tracking.item";
+import SmartCutItem from "./items/smartcut.item";
+import BgRemoveItem from "./items/bgremove.item";
 
 export default function Navbar({isShowDetail, setIsShowDetail}:{isShowDetail:boolean, setIsShowDetail: Dispatch<SetStateAction<boolean>>}){
   const [openIndex, setOpenIndex] = useState<number | null>(null)
@@ -37,6 +40,16 @@ export default function Navbar({isShowDetail, setIsShowDetail}:{isShowDetail:boo
       icon: <MdMyLocation className="text-typography" size={iconSize} />,
       label: "Tracking",
       content: <TrackingItem />,
+    },
+    {
+      icon: <LuScissors className="text-typography" size={iconSize} />,
+      label: "Smart Cut",
+      content: <SmartCutItem />,
+    },
+    {
+      icon: <TbBackground className="text-typography" size={iconSize} />,
+      label: "Background",
+      content: <BgRemoveItem />,
     },
     {
       icon: <GoStarFill className="text-typography" size={iconSize} />,

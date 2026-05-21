@@ -14,6 +14,10 @@ export interface MediaAsset {
   width: number;
   height: number;
   textStyle?: TextStyle;
+  volume?: number;
+  muted?: boolean;
+  fadeIn?: number;
+  fadeOut?: number;
 }
 
 export const DEFAULT_MEDIA_ASSET_SETTINGS: MediaAsset = {
@@ -28,5 +32,9 @@ export const DEFAULT_MEDIA_ASSET_SETTINGS: MediaAsset = {
   name: "",
   endTime: 0,
   width: 0,
-  height: 0
+  height: 0,
+  volume: 1,
+  muted: false,
+  fadeIn: 0,
+  fadeOut: 0,
 };

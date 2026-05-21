@@ -39,6 +39,7 @@ interface TimeLineState {
   cutAsset: () => void;
 
   updateAsset: (id: string, updates: Partial<MediaAsset>) => void;
+  applyAutoCut: (id: string, keepRanges: Array<{ start: number; end: number }>) => number;
   previewMoveMedia: (id: string, type: PreviewStateType, nextDx: number, nextDy: number) => void;
   previewResizeMedia: (id: string, type: PreviewStateType, width: number, height: number, x: number, y: number) => void;
   commit: () => void;
@@ -194,6 +195,38 @@ export const useTimelineStore = create<TimeLineState>((set, get) => {
       assets: state.assets.map((a) => (a.id === id ? { ...a, ...updates } : a)),
     }));
   },
+
+  applyAutoCut: (id, keepRanges) => {
+    let createdCount = 0;
+    set((state) => {
+      const src = state.assets.find((a) => a.id === id);
+      if (!src || keepRanges.length === 0) return state;
+
+      const base = src.startInTimeLine;
+      let cursor = base;
+      const subs: MediaAsset[] = keepRanges.map((r) => {
+        const duration = Math.max(0, r.end - r.start);
+        const piece: MediaAsset = {
+          ...src,
+          id: crypto.randomUUID(),
+          startTime: r.start,
+          endTime: r.end,
+          startInTimeLine: cursor,
+        };
+        cursor += duration;
+        return piece;
+      });
+
+      createdCount = subs.length;
+
+      return {
+        assets: [...state.assets.filter((a) => a.id !== id), ...subs],
+        selectedAssetId: null,
+      };
+    });
+    return createdCount;
+  },
+
 
   previewMoveMedia: (id, type, nextDx, nextDy) =>
     set({

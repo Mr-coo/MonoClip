@@ -3,5 +3,32 @@
     "allow": [
       "Bash(xargs wc *)"
     ]
+  },
+  
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "[console]::beep(523,150); [console]::beep(659,150); [console]::beep(784,400)",
+            "shell": "powershell",
+            "async": true
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "[console]::beep(523,150); [console]::beep(659,150); [console]::beep(784,400)",
+            "shell": "powershell",
+            "async": true
+          }
+        ]
+      }
+    ]
   }
 }
