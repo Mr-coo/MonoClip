@@ -6,6 +6,8 @@ import { useTimelineStore } from "../../store/timeline.store";
 import { MediaAsset } from "../../types/mediaAsset";
 import { MdClose, MdVolumeUp, MdVolumeOff } from "react-icons/md";
 import { AudioPopover } from "./AudioPopover";
+import { useAudioWaveform } from "../../hook/useAudioWaveform";
+import { WaveformCanvas } from "./WaveformCanvas";
 
 export function TimelineMedia({ media }: { media: MediaAsset }) {
   const editorStore = useEditorStore();
@@ -25,6 +27,8 @@ export function TimelineMedia({ media }: { media: MediaAsset }) {
   const width =
     (media.endTime - (media.startTime || 0)) * editorStore.pixelPerSecond;
   const top = (media.layer - 1) * editorStore.layerHeight;
+
+  const waveformData = useAudioWaveform(hasAudio ? media.path : "");
 
   function handleDelete(e: React.PointerEvent | React.MouseEvent) {
     e.stopPropagation();
@@ -50,15 +54,27 @@ export function TimelineMedia({ media }: { media: MediaAsset }) {
         style={{ left, top, width }}
       >
         {media.type === "video" ? (
-          <video
-            src={media.path}
-            className="w-full h-full object-cover"
-            onLoadedData={(e) => {
-              e.currentTarget.currentTime = 0;
-            }}
-            muted
-            playsInline
-          />
+          <>
+            <video
+              src={media.path}
+              className="w-full h-full object-cover"
+              onLoadedData={(e) => {
+                e.currentTarget.currentTime = 0;
+              }}
+              muted
+              playsInline
+            />
+            {waveformData && (
+              <WaveformCanvas
+                data={waveformData}
+                startTime={media.startTime}
+                endTime={media.endTime}
+                width={width}
+                height={36}
+                color="rgba(255,255,255,0.6)"
+              />
+            )}
+          </>
         ) : media.type === "img" ? (
           <img
             src={media.path}
@@ -72,8 +88,19 @@ export function TimelineMedia({ media }: { media: MediaAsset }) {
             </p>
           </div>
         ) : (
-          <div className="w-full h-full bg-base">
-            <p className="text-xs p-2 select-none">♪ {media.name} ♪</p>
+          <div className="w-full h-full bg-gray-900 relative">
+            {waveformData ? (
+              <WaveformCanvas
+                data={waveformData}
+                startTime={media.startTime}
+                endTime={media.endTime}
+                width={width}
+                height={36}
+                color="rgba(74,222,128,0.85)"
+              />
+            ) : (
+              <p className="text-xs p-2 select-none text-white/40">♪ {media.name}</p>
+            )}
           </div>
         )}
 
