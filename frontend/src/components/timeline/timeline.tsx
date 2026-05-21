@@ -63,6 +63,21 @@ export default function Timeline() {
     });
   }, [assets]);
 
+  // Auto-scroll: keep playhead visible during playback
+  useEffect(() => {
+    if (!isPlaying) return;
+    const el = containerRef.current;
+    if (!el) return;
+
+    const playheadPx = currentTime * pixelPerSecondRef.current;
+    const visibleLeft  = el.scrollLeft;
+    const visibleRight = visibleLeft + el.clientWidth;
+
+    if (playheadPx > visibleRight - 80 || playheadPx < visibleLeft + 20) {
+      el.scrollLeft = Math.max(0, playheadPx - el.clientWidth * 0.3);
+    }
+  }, [currentTime, isPlaying]);
+
   // Non-passive wheel listener so we can preventDefault on Ctrl+scroll zoom
   useEffect(() => {
     const el = containerRef.current;
