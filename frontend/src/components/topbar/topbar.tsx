@@ -8,8 +8,9 @@ import { useEditorStore } from "../../store/editor.store";
 import { DEFAULT_MEDIA_ASSET_SETTINGS } from "../../types/mediaAsset";
 import { DEFAULT_TEXT_STYLE } from "../../types/textStyle";
 import { saveProject, loadProject } from "../../utils/project";
-import { FiSave } from "react-icons/fi";
+import { FiSave, FiRotateCcw, FiRotateCw } from "react-icons/fi";
 import { MdFolderOpen } from "react-icons/md";
+import { useHistoryStore } from "../../store/history.store";
 
 const RATIO_PRESETS: Record<string, [number, number]> = {
   "16:9":  [1920, 1080],
@@ -19,10 +20,43 @@ const RATIO_PRESETS: Record<string, [number, number]> = {
   "21:9":  [2560, 1080],
 };
 
+const MAX_HISTORY = 50;
+
 export default function Topbar() {
   const { assets } = useTimelineStore();
   const { segments } = useCaptionStore();
   const { canvasWidth, canvasHeight, setCanvasDimensions } = useEditorStore();
+  const { past, future } = useHistoryStore();
+
+  function handleUndo() {
+    if (past.length === 0) return;
+    const previous = past[past.length - 1];
+    const current = {
+      assets: useTimelineStore.getState().assets,
+      segments: useCaptionStore.getState().segments,
+    };
+    useHistoryStore.setState({
+      past: past.slice(0, -1),
+      future: [current, ...future.slice(0, MAX_HISTORY - 1)],
+    });
+    useTimelineStore.setState({ assets: previous.assets, selectedAssetId: null });
+    useCaptionStore.setState({ segments: previous.segments });
+  }
+
+  function handleRedo() {
+    if (future.length === 0) return;
+    const next = future[0];
+    const current = {
+      assets: useTimelineStore.getState().assets,
+      segments: useCaptionStore.getState().segments,
+    };
+    useHistoryStore.setState({
+      past: [...past.slice(-(MAX_HISTORY - 1)), current],
+      future: future.slice(1),
+    });
+    useTimelineStore.setState({ assets: next.assets, selectedAssetId: null });
+    useCaptionStore.setState({ segments: next.segments });
+  }
 
   const [fileName, setFileName] = useState("Untitled");
   const [isExporting, setIsExporting] = useState(false);
@@ -165,6 +199,25 @@ export default function Topbar() {
           <MdFolderOpen size={15} />
           {projectStatus === "loading" ? "Loading…" : "Open"}
         </button>
+
+        <div className="flex items-center gap-0.5 border-l border-white/10 pl-3 ml-1">
+          <button
+            onClick={handleUndo}
+            disabled={past.length === 0}
+            title="Undo (Ctrl+Z)"
+            className="p-1.5 text-typography/70 hover:text-typography disabled:opacity-30 disabled:cursor-not-allowed transition-colors rounded hover:bg-white/5"
+          >
+            <FiRotateCcw size={14} />
+          </button>
+          <button
+            onClick={handleRedo}
+            disabled={future.length === 0}
+            title="Redo (Ctrl+Y)"
+            className="p-1.5 text-typography/70 hover:text-typography disabled:opacity-30 disabled:cursor-not-allowed transition-colors rounded hover:bg-white/5"
+          >
+            <FiRotateCw size={14} />
+          </button>
+        </div>
 
         {/* Canvas ratio picker */}
         <div className="flex items-center gap-2 border-l border-white/10 pl-3 ml-1">

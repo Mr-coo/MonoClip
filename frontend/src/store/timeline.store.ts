@@ -1,6 +1,9 @@
 import { create } from "zustand";
 import { MediaAsset } from "../types/mediaAsset";
 import { PreviewStateType } from "../enum/previewStateType.enum";
+import { useHistoryStore } from "./history.store";
+// useCaptionStore imported inside functions only — circular dep is safe with ES module live bindings
+import { useCaptionStore } from "./caption.store";
 
 type PreviewState =
   | {
@@ -42,7 +45,15 @@ interface TimeLineState {
   cancelPreview: () => void;
 }
 
-export const useTimelineStore = create<TimeLineState>((set, get) => ({
+export const useTimelineStore = create<TimeLineState>((set, get) => {
+  function snapshot() {
+    return {
+      assets: get().assets,
+      segments: useCaptionStore.getState().segments,
+    };
+  }
+
+  return {
   assets: [],
   currentTime: 0,
   isPlaying: false,
@@ -51,6 +62,7 @@ export const useTimelineStore = create<TimeLineState>((set, get) => ({
   preview: null,
 
   addAsset: (asset) => {
+    useHistoryStore.getState().pushHistory(snapshot());
     set((state) => {
       const maxLayer = state.assets.reduce(
         (m, a) => Math.max(m, a.layer),
@@ -69,19 +81,24 @@ export const useTimelineStore = create<TimeLineState>((set, get) => ({
     });
   },
 
-  removeAsset: (asset) =>
+  removeAsset: (asset) => {
+    useHistoryStore.getState().pushHistory(snapshot());
     set((state) => ({
       assets: state.assets.filter((a) => a.id !== asset.id),
-    })),
+    }));
+  },
 
-  deleteSelected: () =>
+  deleteSelected: () => {
+    if (!get().selectedAssetId) return;
+    useHistoryStore.getState().pushHistory(snapshot());
     set((state) => {
       if (!state.selectedAssetId) return state;
       return {
         assets: state.assets.filter((a) => a.id !== state.selectedAssetId),
         selectedAssetId: null,
       };
-    }),
+    });
+  },
 
   copySelected: () =>
     set((state) => {
@@ -90,7 +107,9 @@ export const useTimelineStore = create<TimeLineState>((set, get) => ({
       return { clipboard: asset };
     }),
 
-  cutSelected: () =>
+  cutSelected: () => {
+    if (!get().selectedAssetId) return;
+    useHistoryStore.getState().pushHistory(snapshot());
     set((state) => {
       const asset = state.assets.find((a) => a.id === state.selectedAssetId);
       if (!asset) return state;
@@ -99,9 +118,12 @@ export const useTimelineStore = create<TimeLineState>((set, get) => ({
         assets: state.assets.filter((a) => a.id !== state.selectedAssetId),
         selectedAssetId: null,
       };
-    }),
+    });
+  },
 
-  pasteClipboard: () =>
+  pasteClipboard: () => {
+    if (!get().clipboard) return;
+    useHistoryStore.getState().pushHistory(snapshot());
     set((state) => {
       if (!state.clipboard) return state;
       const src = state.clipboard;
@@ -113,12 +135,14 @@ export const useTimelineStore = create<TimeLineState>((set, get) => ({
         endTime: src.startTime + duration,
       };
       return { assets: [...state.assets, pasted], selectedAssetId: pasted.id };
-    }),
+    });
+  },
 
   duplicateSelected: () => {
     const { assets, selectedAssetId } = get();
     const src = assets.find((a) => a.id === selectedAssetId);
     if (!src) return;
+    useHistoryStore.getState().pushHistory(snapshot());
     const duration = src.endTime - src.startTime;
     const duped: MediaAsset = {
       ...src,
@@ -136,19 +160,20 @@ export const useTimelineStore = create<TimeLineState>((set, get) => ({
 
   selectAsset: (id) => set({ selectedAssetId: id }),
 
-  cutAsset: () =>
+  cutAsset: () => {
+    const { selectedAssetId, currentTime, assets } = get();
+    if (!selectedAssetId) return;
+    const asset = assets.find((a) => a.id === selectedAssetId);
+    if (!asset) return;
+    const assetEnd = asset.startInTimeLine + (asset.endTime - asset.startTime);
+    if (currentTime <= asset.startInTimeLine || currentTime >= assetEnd) return;
+    useHistoryStore.getState().pushHistory(snapshot());
     set((state) => {
       const { selectedAssetId, currentTime, assets } = state;
       if (!selectedAssetId) return state;
-
       const asset = assets.find((a) => a.id === selectedAssetId);
       if (!asset) return state;
-
-      const assetEnd = asset.startInTimeLine + (asset.endTime - asset.startTime);
-      if (currentTime <= asset.startInTimeLine || currentTime >= assetEnd) return state;
-
       const cutSourceTime = asset.startTime + (currentTime - asset.startInTimeLine);
-
       const left: MediaAsset = { ...asset, endTime: cutSourceTime };
       const right: MediaAsset = {
         ...asset,
@@ -156,18 +181,19 @@ export const useTimelineStore = create<TimeLineState>((set, get) => ({
         startTime: cutSourceTime,
         startInTimeLine: currentTime,
       };
-
       return {
         assets: assets.map((a) => (a.id === asset.id ? left : a)).concat(right),
         selectedAssetId: null,
       };
-    }),
+    });
+  },
 
-
-  updateAsset: (id, updates) =>
+  updateAsset: (id, updates) => {
+    useHistoryStore.getState().pushHistory(snapshot());
     set((state) => ({
       assets: state.assets.map((a) => (a.id === id ? { ...a, ...updates } : a)),
-    })),
+    }));
+  },
 
   previewMoveMedia: (id, type, nextDx, nextDy) =>
     set({
@@ -192,7 +218,8 @@ export const useTimelineStore = create<TimeLineState>((set, get) => ({
     }),
 
 
-  commit: () =>
+  commit: () => {
+    if (get().preview) useHistoryStore.getState().pushHistory(snapshot());
     set((state) => {
       if (!state.preview) return state;
       const { id, x, y } = state.preview;
@@ -248,7 +275,9 @@ export const useTimelineStore = create<TimeLineState>((set, get) => ({
         };
       }
       return state;
-    }),
+    });
+  },
 
   cancelPreview: () => set({ preview: null }),
-}));
+  };
+});

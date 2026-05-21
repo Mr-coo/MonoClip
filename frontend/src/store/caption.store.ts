@@ -1,4 +1,7 @@
 import { create } from "zustand";
+import { useHistoryStore } from "./history.store";
+// useTimelineStore imported inside functions only — circular dep is safe with ES module live bindings
+import { useTimelineStore } from "./timeline.store";
 
 export interface CaptionSegment {
   id: string;
@@ -15,33 +18,50 @@ interface CaptionState {
   setSegments: (segments: Array<{ start: number; end: number; text: string }>) => void;
 }
 
-export const useCaptionStore = create<CaptionState>((set) => ({
-  segments: [],
+export const useCaptionStore = create<CaptionState>((set, get) => {
+  function snapshot() {
+    return {
+      assets: useTimelineStore.getState().assets,
+      segments: get().segments,
+    };
+  }
 
-  addSegment: (start, end, text = "") =>
-    set((state) => ({
-      segments: [
-        ...state.segments,
-        { id: crypto.randomUUID(), start, end: end ?? start + 3, text },
-      ].sort((a, b) => a.start - b.start),
-    })),
+  return {
+    segments: [],
 
-  updateSegment: (id, updates) =>
-    set((state) => ({
-      segments: state.segments
-        .map((s) => (s.id === id ? { ...s, ...updates } : s))
-        .sort((a, b) => a.start - b.start),
-    })),
+    addSegment: (start, end, text = "") => {
+      useHistoryStore.getState().pushHistory(snapshot());
+      set((state) => ({
+        segments: [
+          ...state.segments,
+          { id: crypto.randomUUID(), start, end: end ?? start + 3, text },
+        ].sort((a, b) => a.start - b.start),
+      }));
+    },
 
-  removeSegment: (id) =>
-    set((state) => ({
-      segments: state.segments.filter((s) => s.id !== id),
-    })),
+    updateSegment: (id, updates) => {
+      useHistoryStore.getState().pushHistory(snapshot());
+      set((state) => ({
+        segments: state.segments
+          .map((s) => (s.id === id ? { ...s, ...updates } : s))
+          .sort((a, b) => a.start - b.start),
+      }));
+    },
 
-  setSegments: (segments) =>
-    set({
-      segments: segments
-        .map((s) => ({ ...s, id: crypto.randomUUID() }))
-        .sort((a, b) => a.start - b.start),
-    }),
-}));
+    removeSegment: (id) => {
+      useHistoryStore.getState().pushHistory(snapshot());
+      set((state) => ({
+        segments: state.segments.filter((s) => s.id !== id),
+      }));
+    },
+
+    setSegments: (segments) => {
+      useHistoryStore.getState().pushHistory(snapshot());
+      set({
+        segments: segments
+          .map((s) => ({ ...s, id: crypto.randomUUID() }))
+          .sort((a, b) => a.start - b.start),
+      });
+    },
+  };
+});
