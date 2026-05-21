@@ -197,7 +197,7 @@ export default function CaptionItem() {
           value={targetLang}
           onChange={(e) => setTargetLang(e.target.value)}
           disabled={activeAction !== null || targets.length === 0}
-          className="flex-1 bg-base text-typography text-xs px-2 py-1.5 rounded border border-shadow/50 outline-none cursor-pointer hover:border-shadow disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          className="flex-1 min-w-0 bg-base text-typography text-xs px-2 py-1.5 rounded border border-shadow/50 outline-none cursor-pointer hover:border-shadow disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           title="Target language"
         >
           {targets.length === 0 ? (
@@ -213,7 +213,7 @@ export default function CaptionItem() {
         <button
           onClick={handleTranslate}
           disabled={activeAction !== null || segments.length === 0 || targets.length === 0}
-          className="flex items-center gap-1 bg-shadow px-3 py-1.5 rounded text-xs hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-opacity"
+          className="flex-shrink-0 flex items-center gap-1 bg-shadow px-3 py-1.5 rounded text-xs whitespace-nowrap hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-opacity"
           title="Translate caption text into the selected language"
         >
           <MdTranslate size={14} />
