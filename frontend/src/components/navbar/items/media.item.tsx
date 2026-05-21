@@ -8,6 +8,41 @@ import { FaImages } from "react-icons/fa";
 import { FaVideo } from "react-icons/fa6";
 import { useTimelineStore } from "../../../store/timeline.store";
 import { useEditorStore } from "../../../store/editor.store";
+import { useDragFromLibrary } from "../../../hook/useDragFromLibrary";
+
+function DraggableCard({
+  asset,
+  onSimpleClick,
+  onDelete,
+  className,
+  children,
+}: {
+  asset: MediaAsset;
+  onSimpleClick: () => void;
+  onDelete: (e: React.MouseEvent) => void;
+  className: string;
+  children: React.ReactNode;
+}) {
+  const drag = useDragFromLibrary(asset, onSimpleClick);
+  return (
+    <div
+      onPointerDown={drag.onPointerDown}
+      onPointerMove={drag.onPointerMove}
+      onPointerUp={drag.onPointerUp}
+      className={`cursor-grab active:cursor-grabbing select-none ${className}`}
+    >
+      {children}
+      <button
+        className="absolute top-1 right-1 text-red-400/70 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"
+        onPointerDown={(e) => e.stopPropagation()}
+        onClick={onDelete}
+        title="Remove from library"
+      >
+        <MdDelete size={16} />
+      </button>
+    </div>
+  );
+}
 
 export default function MediaItem() {
   const addAssetMediaStore = useMediaStore((state) => state.addAsset);
@@ -118,41 +153,31 @@ export default function MediaItem() {
           switch (val.type) {
             case "video":
               return (
-                <div
+                <DraggableCard
                   key={val.id}
-                  className="relative w-32 h-32 rounded group overflow-hidden hover:scale-105 transition-all duration-200 cursor-pointer"
-                  onClick={() => addAssetTimeline(val)}
+                  asset={val}
+                  onSimpleClick={() => addAssetTimeline(val)}
+                  onDelete={(e) => handleDelete(e, val.id)}
+                  className="relative w-32 h-32 rounded group overflow-hidden hover:scale-105 transition-all duration-200"
                 >
-                  <div className="bg-linear-to-b from-base/60 to-dark/90 absolute z-10 w-32 h-32 rounded top-32 group-hover:top-0 transition-all duration-200 flex flex-col items-center justify-center">
-                    <button
-                      className="absolute top-1 right-1 text-red-400/70 hover:text-red-400 transition-colors"
-                      onClick={(e) => handleDelete(e, val.id)}
-                      title="Remove from library"
-                    >
-                      <MdDelete size={16} />
-                    </button>
+                  <div className="bg-linear-to-b from-base/60 to-dark/90 absolute z-10 w-32 h-32 rounded top-32 group-hover:top-0 transition-all duration-200 flex flex-col items-center justify-center pointer-events-none">
                     <FaVideo size={35} />
                     <p className="text-xs mt-2">{shortName(val.name)}</p>
                   </div>
                   <video src={val.path} className="w-32 h-32 rounded object-cover" />
-                </div>
+                </DraggableCard>
               );
 
             case "img":
               return (
-                <div
+                <DraggableCard
                   key={val.id}
-                  className="relative w-32 h-32 rounded group overflow-hidden hover:scale-105 transition-all duration-200 cursor-pointer"
-                  onClick={() => addAssetTimeline(val)}
+                  asset={val}
+                  onSimpleClick={() => addAssetTimeline(val)}
+                  onDelete={(e) => handleDelete(e, val.id)}
+                  className="relative w-32 h-32 rounded group overflow-hidden hover:scale-105 transition-all duration-200"
                 >
-                  <div className="bg-linear-to-b from-base/60 to-dark/90 absolute z-10 w-32 h-32 rounded top-32 group-hover:top-0 transition-all duration-200 flex flex-col items-center justify-center">
-                    <button
-                      className="absolute top-1 right-1 text-red-400/70 hover:text-red-400 transition-colors"
-                      onClick={(e) => handleDelete(e, val.id)}
-                      title="Remove from library"
-                    >
-                      <MdDelete size={16} />
-                    </button>
+                  <div className="bg-linear-to-b from-base/60 to-dark/90 absolute z-10 w-32 h-32 rounded top-32 group-hover:top-0 transition-all duration-200 flex flex-col items-center justify-center pointer-events-none">
                     <FaImages size={35} />
                     <p className="text-xs mt-2">{shortName(val.name)}</p>
                   </div>
@@ -161,26 +186,21 @@ export default function MediaItem() {
                     alt={val.name}
                     className="w-32 h-32 rounded object-cover absolute"
                   />
-                </div>
+                </DraggableCard>
               );
 
             case "audio":
               return (
-                <div
+                <DraggableCard
                   key={val.id}
-                  className="relative w-32 h-32 rounded bg-white/10 flex items-center justify-center flex-col hover:scale-105 transition-all duration-200 cursor-pointer group"
-                  onClick={() => addAssetTimeline(val)}
+                  asset={val}
+                  onSimpleClick={() => addAssetTimeline(val)}
+                  onDelete={(e) => handleDelete(e, val.id)}
+                  className="relative w-32 h-32 rounded bg-white/10 flex items-center justify-center flex-col hover:scale-105 transition-all duration-200 group"
                 >
-                  <button
-                    className="absolute top-1 right-1 text-red-400/50 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"
-                    onClick={(e) => handleDelete(e, val.id)}
-                    title="Remove from library"
-                  >
-                    <MdDelete size={16} />
-                  </button>
                   <MdOutlineAudiotrack size={35} />
                   <p className="text-xs mt-2">{shortName(val.name)}</p>
-                </div>
+                </DraggableCard>
               );
 
             default:

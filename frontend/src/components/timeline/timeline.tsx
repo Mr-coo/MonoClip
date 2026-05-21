@@ -6,6 +6,8 @@ import { useResizeTimeline } from "../../hook/useResizeTimeline";
 import { useEditorStore } from "../../store/editor.store";
 import { TimelineMedia } from "./TimelineMediaAsset";
 import { useRewindTimeline } from "../../hook/useRewindTimeline";
+import { useDragLibraryStore } from "../../store/dragLibrary.store";
+import { TIMELINE_DROP_ID } from "../../hook/useDragFromLibrary";
 
 const MIN_ZOOM = 5;
 const MAX_ZOOM = 200;
@@ -20,6 +22,7 @@ function formatRulerLabel(seconds: number): string {
 export default function Timeline() {
   const { assets, currentTime, isPlaying, selectedAssetId, togglePlay, cutAsset, selectAsset, setCurrentTime } = useTimelineStore();
   const editorStore = useEditorStore();
+  const isDraggingFromLibrary = useDragLibraryStore((s) => s.dragging !== null);
   const resizeTimelineHook = useResizeTimeline();
   const rewindTimelineHook = useRewindTimeline();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -127,8 +130,11 @@ export default function Timeline() {
       </div>
 
       <div
+        id={TIMELINE_DROP_ID}
         ref={containerRef}
-        className="bg-mid w-full overflow-x-auto overflow-y-auto relative border-t border-white/10 px-2 no-scrollbar"
+        className={`bg-mid w-full overflow-x-auto overflow-y-auto relative border-t px-2 no-scrollbar transition-colors ${
+          isDraggingFromLibrary ? "border-primary/60" : "border-white/10"
+        }`}
         style={{ height: `${editorStore.timelineHeight}px` }}
       >
         {/* Playhead */}

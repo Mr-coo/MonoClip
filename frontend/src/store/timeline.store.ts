@@ -26,6 +26,7 @@ interface TimeLineState {
   preview: PreviewState;
 
   addAsset: (asset: MediaAsset) => void;
+  dropAsset: (asset: MediaAsset, startInTimeLine: number, layer: number) => void;
   removeAsset: (asset: MediaAsset) => void;
   deleteSelected: () => void;
   copySelected: () => void;
@@ -79,6 +80,19 @@ export const useTimelineStore = create<TimeLineState>((set, get) => {
       return {
         assets: [...state.assets, duplicatedAsset],
       };
+    });
+  },
+
+  dropAsset: (asset, startInTimeLine, layer) => {
+    useHistoryStore.getState().pushHistory(snapshot());
+    set((state) => {
+      const newAsset: MediaAsset = {
+        ...asset,
+        id: crypto.randomUUID(),
+        startInTimeLine,
+        layer,
+      };
+      return { assets: [...state.assets, newAsset], selectedAssetId: newAsset.id };
     });
   },
 

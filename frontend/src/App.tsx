@@ -3,6 +3,7 @@ import Navbar from "./components/navbar/navbar";
 import Topbar from "./components/topbar/topbar";
 import Content from "./components/content/content";
 import TimeLine from "./components/timeline/timeline";
+import { DragGhost } from "./components/DragGhost";
 import { usePlayback } from "./hook/usePlayback";
 import { useKeyboardShortcuts } from "./hook/useKeyboardShortcuts";
 
@@ -20,6 +21,7 @@ function App() {
         <Content/>
         <TimeLine/>
       </div>
+      <DragGhost />
     </main>
   );
 }
