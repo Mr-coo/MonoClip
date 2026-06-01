@@ -3,8 +3,6 @@ import logo from '../../../public/logo.png'
 import { HiUpload } from "react-icons/hi";
 import { PiTextTBold } from "react-icons/pi";
 import { LuCaptions, LuScissors } from "react-icons/lu";
-import { GoStarFill } from "react-icons/go";
-import { FaLayerGroup } from "react-icons/fa";
 import { TbBackground } from "react-icons/tb";
 import { MdMyLocation, MdOutlineArrowLeft, MdOutlineArrowRight } from "react-icons/md";
 import NavbarItem from "./navbar.item";
@@ -52,14 +50,6 @@ export default function Navbar({isShowDetail, setIsShowDetail}:{isShowDetail:boo
       icon: <TbBackground className="text-typography" size={iconSize} />,
       label: "Background",
       content: <BgRemoveItem />,
-    },
-    {
-      icon: <GoStarFill className="text-typography" size={iconSize} />,
-      label: "Effect",
-    },
-    {
-      icon: <FaLayerGroup className="text-typography" size={iconSize} />,
-      label: "Transitions",
     },
   ]
 
