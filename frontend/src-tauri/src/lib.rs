@@ -75,8 +75,32 @@ async fn read_project_file(path: String) -> Result<String, String> {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        // Must be registered BEFORE all other plugins. Keeps a single running
+        // instance: when a monoclip:// deep link launches a second process on
+        // Windows/Linux, its args are forwarded here (the "deep-link" feature also
+        // re-emits the URL to the deep-link plugin's onOpenUrl in this instance),
+        // then we focus the existing window instead of opening a new one.
+        .plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
+            if let Some(window) = app.get_webview_window("main") {
+                let _ = window.show();
+                let _ = window.unminimize();
+                let _ = window.set_focus();
+            }
+        }))
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_deep_link::init())
+        .plugin(tauri_plugin_http::init())
+        .setup(|app| {
+            // Register the monoclip:// scheme at runtime. Required for dev on
+            // Windows/Linux; on a packaged build the installer also registers it.
+            #[cfg(any(windows, target_os = "linux"))]
+            {
+                use tauri_plugin_deep_link::DeepLinkExt;
+                let _ = app.deep_link().register_all();
+            }
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![export_video, write_project_file, read_project_file, download_to_app_data])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

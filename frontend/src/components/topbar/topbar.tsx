@@ -8,9 +8,10 @@ import { useEditorStore } from "../../store/editor.store";
 import { DEFAULT_MEDIA_ASSET_SETTINGS } from "../../types/mediaAsset";
 import { DEFAULT_TEXT_STYLE } from "../../types/textStyle";
 import { saveProject, loadProject } from "../../utils/project";
-import { FiSave, FiRotateCcw, FiRotateCw } from "react-icons/fi";
+import { FiSave, FiRotateCcw, FiRotateCw, FiLogOut } from "react-icons/fi";
 import { MdFolderOpen } from "react-icons/md";
 import { useHistoryStore } from "../../store/history.store";
+import { useAuthStore } from "../../store/auth.store";
 
 const RATIO_PRESETS: Record<string, [number, number]> = {
   "16:9":  [1920, 1080],
@@ -27,6 +28,8 @@ export default function Topbar() {
   const { segments } = useCaptionStore();
   const { canvasWidth, canvasHeight, setCanvasDimensions } = useEditorStore();
   const { past, future } = useHistoryStore();
+  const user = useAuthStore((s) => s.user);
+  const logout = useAuthStore((s) => s.logout);
 
   function handleUndo() {
     if (past.length === 0) return;
@@ -283,6 +286,35 @@ export default function Topbar() {
             onClick={isExporting ? () => {} : handleExport}
           />
         </div>
+
+        {user && (
+          <div className="flex items-center gap-2 border-l border-white/10 pl-3 ml-1">
+            {user.avatar_url ? (
+              <img
+                src={user.avatar_url}
+                alt=""
+                className="h-7 w-7 rounded-full object-cover"
+              />
+            ) : (
+              <div className="h-7 w-7 rounded-full bg-primary flex items-center justify-center text-xs uppercase">
+                {(user.full_name || user.email).charAt(0)}
+              </div>
+            )}
+            <span
+              className="text-xs text-typography/70 max-w-32 truncate"
+              title={user.email}
+            >
+              {user.full_name || user.email}
+            </span>
+            <button
+              onClick={logout}
+              title="Log out"
+              className="p-1.5 text-typography/70 hover:text-typography transition-colors rounded hover:bg-white/5"
+            >
+              <FiLogOut size={14} />
+            </button>
+          </div>
+        )}
       </div>
     </div>
 

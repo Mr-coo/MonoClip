@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from fastapi.concurrency import run_in_threadpool
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.routes.auth import router as auth_router
 from app.routes.bgremove import router as bgremove_router
 from app.routes.filter_badword import router as filter_badword_router
 from app.routes.transcribe import router as transcribe_router
@@ -35,6 +36,10 @@ TAGS_METADATA = [
         "name": "bgremove",
         "description": "AI background removal for images (RGBA PNG) and videos (VP9 WebM with alpha) using rembg / U2Net.",
     },
+    {
+        "name": "auth",
+        "description": "User accounts — email/password register & login plus Google/GitHub OAuth, issuing JWT access tokens.",
+    },
 ]
 
 app = FastAPI(
@@ -53,6 +58,7 @@ app.add_middleware(
 	allow_headers=["*"],
 )
 
+app.include_router(auth_router)
 app.include_router(transcribe_router)
 app.include_router(filter_badword_router)
 app.include_router(translate_router)

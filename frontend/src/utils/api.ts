@@ -1,3 +1,9 @@
+// Route HTTP through Tauri's Rust side (reqwest) instead of the WebView2 network
+// stack. Recent WebView2/Chromium versions block page requests to loopback
+// addresses (Local Network Access), which surfaces as net::ERR_EMPTY_RESPONSE and
+// never reaches the backend. The plugin's fetch is API-compatible with the web one.
+import { fetch } from "@tauri-apps/plugin-http";
+
 export const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8000";
 
 export interface CaptionSegment {
@@ -36,6 +42,64 @@ async function checkResponse(res: Response): Promise<void> {
     const body = (await res.json().catch(() => ({}))) as { detail?: string };
     throw new Error(body.detail ?? `HTTP ${res.status}`);
   }
+}
+
+// ---------------------------------------------------------------------------
+// Auth
+// ---------------------------------------------------------------------------
+
+export type OAuthProvider = "google" | "github";
+
+export interface AuthUser {
+  id: string;
+  email: string;
+  full_name: string | null;
+  avatar_url: string | null;
+  provider: string;
+}
+
+export interface TokenResponse {
+  access_token: string;
+  token_type: string;
+}
+
+export function oauthLoginUrl(provider: OAuthProvider): string {
+  return `${API_BASE}/auth/${provider}/login`;
+}
+
+export async function registerUser(
+  email: string,
+  password: string,
+  fullName?: string,
+): Promise<TokenResponse> {
+  const res = await fetch(`${API_BASE}/auth/register`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password, full_name: fullName || null }),
+  });
+  await checkResponse(res);
+  return res.json() as Promise<TokenResponse>;
+}
+
+export async function loginUser(
+  email: string,
+  password: string,
+): Promise<TokenResponse> {
+  const res = await fetch(`${API_BASE}/auth/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
+  await checkResponse(res);
+  return res.json() as Promise<TokenResponse>;
+}
+
+export async function getMe(token: string): Promise<AuthUser> {
+  const res = await fetch(`${API_BASE}/auth/me`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  await checkResponse(res);
+  return res.json() as Promise<AuthUser>;
 }
 
 export async function transcribe(file: File): Promise<TranscriptionResponse> {

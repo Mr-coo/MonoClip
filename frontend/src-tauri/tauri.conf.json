@@ -25,6 +25,15 @@
       }
     }
   },
+  "plugins": {
+    "deep-link": {
+      "desktop": {
+        "schemes": [
+          "monoclip"
+        ]
+      }
+    }
+  },
   "bundle": {
     "resources": [
       "ffmpeg/ffmpeg.exe"
