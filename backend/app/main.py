@@ -10,6 +10,7 @@ from app.routes.filter_badword import router as filter_badword_router
 from app.routes.transcribe import router as transcribe_router
 from app.routes.tracking import router as tracking_router
 from app.routes.translate import router as translate_router
+from app.core.config import get_settings
 from app.services.whisper_service import get_whisper_model
 
 
@@ -52,7 +53,7 @@ app = FastAPI(
 
 app.add_middleware(
 	CORSMiddleware,
-	allow_origins=["*"],
+	allow_origins=get_settings().CORS_ALLOW_ORIGINS,
 	allow_credentials=False,
 	allow_methods=["*"],
 	allow_headers=["*"],

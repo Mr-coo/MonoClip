@@ -1,6 +1,9 @@
 from functools import lru_cache
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+INSECURE_JWT_SECRET = "change-me-in-production"
 
 
 class Settings(BaseSettings):
@@ -14,10 +17,36 @@ class Settings(BaseSettings):
     )
 
     # JWT
-    JWT_SECRET: str = "change-me-in-production"
+    JWT_SECRET: str = INSECURE_JWT_SECRET
     JWT_ALG: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 7 days
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24  # 1 day
     STATE_TOKEN_EXPIRE_MINUTES: int = 10
+
+    # One-time code used to hand the JWT to the desktop app after OAuth.
+    OAUTH_CODE_EXPIRE_SECONDS: int = 120
+
+    # Login/registration abuse protection (per client IP + email).
+    LOGIN_RATE_LIMIT: int = 10
+    LOGIN_RATE_WINDOW_SECONDS: int = 300
+
+    # Browser origins allowed to call the API (the Tauri webview + dev server).
+    # App→backend traffic goes through the Tauri HTTP plugin (reqwest) and is not
+    # subject to CORS; this list only gates real browser/WebView fetches.
+    CORS_ALLOW_ORIGINS: list[str] = [
+        "http://localhost:1420",
+        "http://tauri.localhost",
+        "tauri://localhost",
+    ]
+
+    @field_validator("JWT_SECRET")
+    @classmethod
+    def _reject_insecure_secret(cls, value: str) -> str:
+        if not value or value == INSECURE_JWT_SECRET:
+            raise ValueError(
+                "JWT_SECRET is unset or still the placeholder. Set a strong random "
+                'value, e.g. python -c "import secrets; print(secrets.token_urlsafe(48))"'
+            )
+        return value
 
     # OAuth — Google
     GOOGLE_CLIENT_ID: str = ""

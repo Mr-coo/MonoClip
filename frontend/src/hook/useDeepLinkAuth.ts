@@ -1,20 +1,22 @@
 import { useEffect } from "react";
 import { onOpenUrl, getCurrent } from "@tauri-apps/plugin-deep-link";
 
+import { exchangeOAuthCode } from "../utils/api";
 import { useAuthStore } from "../store/auth.store";
 
 /**
- * Captures the `monoclip://auth?token=...` deep link fired by the backend OAuth
- * callback and feeds the token into the auth store. Handles both the running-app
- * case (onOpenUrl) and the cold-start case (getCurrent).
+ * Captures the `monoclip://auth?code=...` deep link fired by the backend OAuth
+ * callback, swaps the single-use code for an access token, and feeds it into the
+ * auth store. Handles both the running-app case (onOpenUrl) and the cold-start
+ * case (getCurrent).
  */
-function extractToken(urls: string[] | null): string | null {
+function extractCode(urls: string[] | null): string | null {
   if (!urls) return null;
   for (const raw of urls) {
     try {
       const url = new URL(raw);
-      const token = url.searchParams.get("token");
-      if (token) return token;
+      const code = url.searchParams.get("code");
+      if (code) return code;
     } catch {
       /* not a parseable URL — skip */
     }
@@ -30,8 +32,11 @@ export function useDeepLinkAuth(): void {
     let cancelled = false;
 
     const handle = (urls: string[] | null) => {
-      const token = extractToken(urls);
-      if (token) void setToken(token).catch(() => {});
+      const code = extractCode(urls);
+      if (!code) return;
+      void exchangeOAuthCode(code)
+        .then(({ access_token }) => setToken(access_token))
+        .catch(() => {});
     };
 
     // Cold start: app launched by the deep link.

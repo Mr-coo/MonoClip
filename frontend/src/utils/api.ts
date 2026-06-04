@@ -94,6 +94,16 @@ export async function loginUser(
   return res.json() as Promise<TokenResponse>;
 }
 
+export async function exchangeOAuthCode(code: string): Promise<TokenResponse> {
+  const res = await fetch(`${API_BASE}/auth/exchange`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ code }),
+  });
+  await checkResponse(res);
+  return res.json() as Promise<TokenResponse>;
+}
+
 export async function getMe(token: string): Promise<AuthUser> {
   const res = await fetch(`${API_BASE}/auth/me`, {
     headers: { Authorization: `Bearer ${token}` },

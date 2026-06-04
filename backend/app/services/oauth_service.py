@@ -16,6 +16,10 @@ class OAuthProfile:
     email: str
     full_name: str | None
     avatar_url: str | None
+    # Whether the provider asserts this email address is verified. Only verified
+    # emails may be linked to a pre-existing account (otherwise an attacker could
+    # claim a victim's email on their own provider account and take it over).
+    email_verified: bool
 
 
 class OAuthError(Exception):
@@ -100,11 +104,15 @@ async def _google_exchange(code: str) -> OAuthProfile:
     email = info.get("email")
     if not email:
         raise OAuthError("Google account has no email")
+    # Google returns email_verified as a bool or the string "true".
+    verified_raw = info.get("email_verified")
+    email_verified = verified_raw is True or str(verified_raw).lower() == "true"
     return OAuthProfile(
         account_id=str(info["sub"]),
         email=email,
         full_name=info.get("name"),
         avatar_url=info.get("picture"),
+        email_verified=email_verified,
     )
 
 
@@ -137,21 +145,25 @@ async def _github_exchange(code: str) -> OAuthProfile:
             raise OAuthError(f"GitHub user fetch failed: {user_res.text}")
         user = user_res.json()
 
-        email = user.get("email")
-        if not email:
-            emails_res = await client.get(
-                "https://api.github.com/user/emails", headers=auth_headers
-            )
-            if emails_res.status_code == 200:
-                emails = emails_res.json()
-                primary = next(
-                    (e for e in emails if e.get("primary") and e.get("verified")),
-                    None,
-                )
-                verified = next((e for e in emails if e.get("verified")), None)
-                chosen = primary or verified or (emails[0] if emails else None)
-                if chosen:
-                    email = chosen.get("email")
+        # Always consult /user/emails so we can establish verification status —
+        # the public profile email (user["email"]) is not guaranteed verified.
+        emails: list[dict] = []
+        emails_res = await client.get(
+            "https://api.github.com/user/emails", headers=auth_headers
+        )
+        if emails_res.status_code == 200:
+            emails = emails_res.json()
+
+    primary = next((e for e in emails if e.get("primary") and e.get("verified")), None)
+    verified = next((e for e in emails if e.get("verified")), None)
+    chosen = primary or verified
+    if chosen:
+        email, email_verified = chosen.get("email"), True
+    else:
+        # No verified address — keep one so a brand-new account can still be
+        # created, but flag it unverified so it can't be linked to an existing one.
+        unverified = user.get("email") or (emails[0].get("email") if emails else None)
+        email, email_verified = unverified, False
 
     if not email:
         raise OAuthError("GitHub account has no accessible email")
@@ -160,4 +172,5 @@ async def _github_exchange(code: str) -> OAuthProfile:
         email=email,
         full_name=user.get("name") or user.get("login"),
         avatar_url=user.get("avatar_url"),
+        email_verified=email_verified,
     )

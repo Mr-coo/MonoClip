@@ -1,8 +1,12 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.security import hash_password, verify_password
+from app.core.security import dummy_password_verify, hash_password, verify_password
 from app.models.user import User
+
+
+class EmailNotVerifiedError(Exception):
+    """OAuth profile email is unverified and collides with an existing account."""
 
 
 async def get_user_by_id(db: AsyncSession, user_id: str) -> User | None:
@@ -33,6 +37,9 @@ async def create_local_user(
 async def authenticate(db: AsyncSession, email: str, password: str) -> User | None:
     user = await get_user_by_email(db, email)
     if user is None or not user.hashed_password:
+        # Run a throwaway hash verification so a missing/OAuth-only account takes
+        # the same time as a wrong password — avoids a user-enumeration timing leak.
+        dummy_password_verify()
         return None
     if not verify_password(password, user.hashed_password):
         return None
@@ -47,6 +54,7 @@ async def get_or_create_oauth_user(
     email: str,
     full_name: str | None,
     avatar_url: str | None,
+    email_verified: bool,
 ) -> User:
     """Find a user by provider account, falling back to email, else create one."""
     result = await db.execute(
@@ -58,9 +66,16 @@ async def get_or_create_oauth_user(
     if user is not None:
         return user
 
-    # Link to an existing account that shares the email (e.g. registered locally first).
+    # Link to an existing account that shares the email (e.g. registered locally
+    # first). Only do this when the provider vouches the email is verified —
+    # otherwise an attacker could claim a victim's email and hijack the account.
     existing = await get_user_by_email(db, email)
     if existing is not None:
+        if not email_verified:
+            raise EmailNotVerifiedError(
+                "This email is already registered. Sign in with your existing "
+                "method, or verify the email with your provider first."
+            )
         existing.provider = provider
         existing.provider_account_id = account_id
         if avatar_url and not existing.avatar_url:
