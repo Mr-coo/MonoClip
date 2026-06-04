@@ -2,10 +2,11 @@ import os
 import tempfile
 from pathlib import Path
 
-from fastapi import APIRouter, File, Form, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import FileResponse
 
+from app.core.deps import get_current_user
 from app.models.schema import BBox, TrackFrame, TrackingResponse
 from app.services.tracking_service import track_and_zoom
 
@@ -36,6 +37,7 @@ async def download_tracked_file(filename: str) -> FileResponse:
 @router.post(
     "/track",
     response_model=TrackingResponse,
+    dependencies=[Depends(get_current_user)],
     summary="Track object in video",
     description=(
         "Upload a video and specify a bounding box (x, y, w, h in source pixels) around the object to track. "

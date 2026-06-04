@@ -1,8 +1,10 @@
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.concurrency import run_in_threadpool
 from fastapi.middleware.cors import CORSMiddleware
+
+from app.core.deps import get_current_user
 
 from app.routes.auth import router as auth_router
 from app.routes.bgremove import router as bgremove_router
@@ -59,10 +61,16 @@ app.add_middleware(
 	allow_headers=["*"],
 )
 
+# Every feature endpoint requires a valid access token. The auth router stays
+# public (register/login/OAuth), and tracking/bgremove guard only their POST
+# handlers so their file-download GETs (fetched by the Rust downloader, which
+# can't send a bearer header) remain reachable.
+_auth_required = [Depends(get_current_user)]
+
 app.include_router(auth_router)
-app.include_router(transcribe_router)
-app.include_router(filter_badword_router)
-app.include_router(translate_router)
+app.include_router(transcribe_router, dependencies=_auth_required)
+app.include_router(filter_badword_router, dependencies=_auth_required)
+app.include_router(translate_router, dependencies=_auth_required)
 app.include_router(tracking_router)
 app.include_router(bgremove_router)
 

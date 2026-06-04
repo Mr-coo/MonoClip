@@ -6,6 +6,19 @@ import { fetch } from "@tauri-apps/plugin-http";
 
 export const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8000";
 
+// Kept in sync with TOKEN_KEY in store/auth.store.ts. Read from storage rather
+// than importing the store to avoid a circular import (the store imports this).
+const TOKEN_KEY = "monoclip.token";
+
+function authHeaders(): Record<string, string> {
+  try {
+    const token = localStorage.getItem(TOKEN_KEY);
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  } catch {
+    return {};
+  }
+}
+
 export interface CaptionSegment {
   id: number;
   start: number;
@@ -115,7 +128,11 @@ export async function getMe(token: string): Promise<AuthUser> {
 export async function transcribe(file: File): Promise<TranscriptionResponse> {
   const form = new FormData();
   form.append("file", file);
-  const res = await fetch(`${API_BASE}/transcribe`, { method: "POST", body: form });
+  const res = await fetch(`${API_BASE}/transcribe`, {
+    method: "POST",
+    headers: authHeaders(),
+    body: form,
+  });
   await checkResponse(res);
   return res.json() as Promise<TranscriptionResponse>;
 }
@@ -125,7 +142,7 @@ export async function filterBadwords(
 ): Promise<TranscriptionResponse> {
   const res = await fetch(`${API_BASE}/caption/filter`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...authHeaders() },
     body: JSON.stringify(payload),
   });
   await checkResponse(res);
@@ -138,7 +155,9 @@ export interface TranslationTarget {
 }
 
 export async function listTranslationTargets(): Promise<TranslationTarget[]> {
-  const res = await fetch(`${API_BASE}/caption/translate/languages`);
+  const res = await fetch(`${API_BASE}/caption/translate/languages`, {
+    headers: authHeaders(),
+  });
   await checkResponse(res);
   const body = (await res.json()) as { targets: TranslationTarget[] };
   return body.targets;
@@ -151,7 +170,7 @@ export async function translateCaptions(payload: {
 }): Promise<TranscriptionResponse> {
   const res = await fetch(`${API_BASE}/caption/translate`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...authHeaders() },
     body: JSON.stringify(payload),
   });
   await checkResponse(res);
@@ -167,7 +186,11 @@ export interface BgRemoveResponse {
 export async function removeBackground(file: File): Promise<BgRemoveResponse> {
   const form = new FormData();
   form.append("file", file);
-  const res = await fetch(`${API_BASE}/bgremove`, { method: "POST", body: form });
+  const res = await fetch(`${API_BASE}/bgremove`, {
+    method: "POST",
+    headers: authHeaders(),
+    body: form,
+  });
   await checkResponse(res);
   return res.json() as Promise<BgRemoveResponse>;
 }
@@ -187,7 +210,11 @@ export async function trackObject(
   form.append("w", String(w));
   form.append("h", String(h));
   form.append("zoom_factor", String(zoomFactor));
-  const res = await fetch(`${API_BASE}/track`, { method: "POST", body: form });
+  const res = await fetch(`${API_BASE}/track`, {
+    method: "POST",
+    headers: authHeaders(),
+    body: form,
+  });
   await checkResponse(res);
   return res.json() as Promise<TrackingResponse>;
 }

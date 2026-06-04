@@ -2,11 +2,12 @@ import os
 import tempfile
 from pathlib import Path
 
-from fastapi import APIRouter, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
+from app.core.deps import get_current_user
 from app.services.bgremove_service import remove_image_bg, remove_video_bg
 
 
@@ -45,6 +46,7 @@ async def download_file(filename: str) -> FileResponse:
 @router.post(
     "",
     response_model=BgRemoveResponse,
+    dependencies=[Depends(get_current_user)],
     summary="Remove background from an image or video",
     description=(
         "Upload an image (PNG/JPG/WebP) or a video (MP4/MOV/MKV/AVI/WebM). "
