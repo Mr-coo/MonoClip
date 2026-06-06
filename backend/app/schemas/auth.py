@@ -28,6 +28,19 @@ class LoginRequest(BaseModel):
     _check_password = field_validator("password")(_within_bcrypt_limit)
 
 
+class RegisterStartResponse(BaseModel):
+    """Returned when a signup is staged and a verification code has been sent."""
+
+    email: EmailStr
+    detail: str = "Verification code sent."
+
+
+class RegisterVerifyRequest(BaseModel):
+    email: EmailStr
+    # Six-digit numeric code from the verification email.
+    code: str = Field(..., pattern=r"^\d{6}$")
+
+
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"

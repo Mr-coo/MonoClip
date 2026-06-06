@@ -62,6 +62,23 @@ class Settings(BaseSettings):
     # Custom protocol the desktop app registers; the callback hands the token here.
     APP_DEEP_LINK: str = "monoclip://auth"
 
+    # --- Email (Gmail SMTP) for signup verification codes ---
+    # Use a Gmail App Password (Google Account > Security > 2-Step Verification >
+    # App passwords), NOT your normal account password. Port 587 = STARTTLS,
+    # port 465 = implicit SSL. When unset, codes are logged instead of emailed
+    # so the flow still works in local development.
+    SMTP_HOST: str = "smtp.gmail.com"
+    SMTP_PORT: int = 587
+    SMTP_USER: str = ""  # full Gmail address, e.g. you@gmail.com
+    SMTP_PASSWORD: str = ""  # 16-char Gmail App Password
+    EMAIL_FROM: str = ""  # falls back to SMTP_USER when blank
+    EMAIL_FROM_NAME: str = "MonoClip"
+
+    # Signup email-verification one-time code.
+    OTP_LENGTH: int = 6
+    OTP_EXPIRE_SECONDS: int = 600  # 10 minutes
+    OTP_MAX_ATTEMPTS: int = 5
+
     @property
     def sync_database_url(self) -> str:
         """Sync SQLAlchemy URL (psycopg/psycopg2) used by Alembic migrations."""
@@ -69,6 +86,11 @@ class Settings(BaseSettings):
 
     def redirect_uri(self, provider: str) -> str:
         return f"{self.OAUTH_REDIRECT_BASE}/auth/{provider}/callback"
+
+    @property
+    def email_sender(self) -> str:
+        """The From address for outbound mail (EMAIL_FROM, or SMTP_USER)."""
+        return self.EMAIL_FROM or self.SMTP_USER
 
 
 @lru_cache

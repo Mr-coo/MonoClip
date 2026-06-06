@@ -1,7 +1,7 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.security import dummy_password_verify, hash_password, verify_password
+from app.core.security import dummy_password_verify, verify_password
 from app.models.user import User
 
 
@@ -20,11 +20,13 @@ async def get_user_by_email(db: AsyncSession, email: str) -> User | None:
 
 
 async def create_local_user(
-    db: AsyncSession, email: str, password: str, full_name: str | None
+    db: AsyncSession, *, email: str, hashed_password: str, full_name: str | None
 ) -> User:
+    """Insert a local (email/password) account. Password is already hashed —
+    for the signup flow it's hashed up front and held until the email is verified."""
     user = User(
         email=email,
-        hashed_password=hash_password(password),
+        hashed_password=hashed_password,
         full_name=full_name,
         provider="local",
     )

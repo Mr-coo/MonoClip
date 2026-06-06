@@ -1,29 +1,39 @@
 import html
 import json
+import logging
 from urllib.parse import urlencode
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
 from app.core.deps import get_current_user
 from app.core.rate_limit import client_ip, enforce_rate_limit
-from app.core.security import create_access_token, create_state_token, verify_state_token
+from app.core.security import (
+    create_access_token,
+    create_state_token,
+    hash_password,
+    verify_state_token,
+)
 from app.db.session import get_db
 from app.models.user import User
 from app.schemas.auth import (
     CodeExchangeRequest,
     LoginRequest,
     RegisterRequest,
+    RegisterStartResponse,
+    RegisterVerifyRequest,
     TokenResponse,
     UserResponse,
 )
-from app.services import auth_service, code_exchange, oauth_service
+from app.services import auth_service, code_exchange, email_service, oauth_service, otp_service
 from app.services.auth_service import EmailNotVerifiedError
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 settings = get_settings()
+logger = logging.getLogger(__name__)
 
 
 def _rate_limit_login(request: Request, email: str) -> None:
@@ -33,10 +43,15 @@ def _rate_limit_login(request: Request, email: str) -> None:
     )
 
 
-@router.post("/register", response_model=TokenResponse, summary="Register with email + password")
+@router.post(
+    "/register",
+    response_model=RegisterStartResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+    summary="Start registration — emails a verification code",
+)
 async def register(
     payload: RegisterRequest, request: Request, db: AsyncSession = Depends(get_db)
-) -> TokenResponse:
+) -> RegisterStartResponse:
     _rate_limit_login(request, payload.email)
     existing = await auth_service.get_user_by_email(db, payload.email)
     if existing is not None:
@@ -44,8 +59,57 @@ async def register(
             status_code=status.HTTP_409_CONFLICT,
             detail="An account with this email already exists.",
         )
+    # Hash now and stage the signup in memory; the account is only created once
+    # the code from the email is confirmed at /register/verify.
+    code = otp_service.start_signup(
+        email=payload.email,
+        hashed_password=hash_password(payload.password),
+        full_name=payload.full_name,
+    )
+    try:
+        await run_in_threadpool(email_service.send_otp_email, payload.email, code)
+    except email_service.EmailError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc)
+        )
+    return RegisterStartResponse(email=payload.email)
+
+
+@router.post(
+    "/register/verify",
+    response_model=TokenResponse,
+    summary="Confirm the emailed code and finish registration",
+)
+async def register_verify(
+    payload: RegisterVerifyRequest,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+) -> TokenResponse:
+    _rate_limit_login(request, payload.email)
+    result, pending = otp_service.verify_signup(payload.email, payload.code)
+    if result is otp_service.VerifyStatus.NO_PENDING:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Your code has expired or is no longer valid. Please register again.",
+        )
+    if result is otp_service.VerifyStatus.INVALID_CODE or pending is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Incorrect code. Please check and try again.",
+        )
+
+    # Re-check uniqueness in case the email was claimed between start and verify.
+    existing = await auth_service.get_user_by_email(db, pending.email)
+    if existing is not None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="An account with this email already exists.",
+        )
     user = await auth_service.create_local_user(
-        db, email=payload.email, password=payload.password, full_name=payload.full_name
+        db,
+        email=pending.email,
+        hashed_password=pending.hashed_password,
+        full_name=pending.full_name,
     )
     return TokenResponse(access_token=create_access_token(str(user.id)))
 
@@ -100,13 +164,20 @@ async def oauth_callback(
 ):
     _validate_provider(provider)
     if error:
+        logger.warning("OAuth %s callback returned provider error: %s", provider, error)
         return _result_page(error=f"Provider returned an error: {error}")
     if not code or not verify_state_token(state, provider):
+        logger.warning(
+            "OAuth %s callback rejected: %s",
+            provider,
+            "missing code" if not code else "invalid or expired state",
+        )
         return _result_page(error="Invalid or expired authorization state.")
 
     try:
         profile = await oauth_service.exchange_code(provider, code)
     except oauth_service.OAuthError as exc:
+        logger.warning("OAuth %s code exchange failed: %s", provider, exc)
         return _result_page(error=str(exc))
 
     try:
@@ -120,6 +191,7 @@ async def oauth_callback(
             email_verified=profile.email_verified,
         )
     except EmailNotVerifiedError as exc:
+        logger.warning("OAuth %s sign-in blocked: %s", provider, exc)
         return _result_page(error=str(exc))
 
     token = create_access_token(str(user.id))

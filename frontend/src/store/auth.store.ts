@@ -7,7 +7,8 @@ import {
   getMe,
   loginUser,
   oauthLoginUrl,
-  registerUser,
+  startRegistration,
+  verifyRegistration,
   setUnauthorizedHandler,
 } from "../utils/api";
 
@@ -23,7 +24,9 @@ interface AuthState {
   bootstrap: () => Promise<void>;
   setToken: (token: string) => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, fullName?: string) => Promise<void>;
+  // Signup is two steps: stage + email a code, then confirm the code.
+  startRegistration: (email: string, password: string, fullName?: string) => Promise<void>;
+  verifyRegistration: (email: string, code: string) => Promise<void>;
   loginWithProvider: (provider: OAuthProvider) => Promise<void>;
   logout: () => void;
 }
@@ -80,8 +83,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     await get().setToken(access_token);
   },
 
-  register: async (email, password, fullName) => {
-    const { access_token } = await registerUser(email, password, fullName);
+  startRegistration: async (email, password, fullName) => {
+    await startRegistration(email, password, fullName);
+  },
+
+  verifyRegistration: async (email, code) => {
+    const { access_token } = await verifyRegistration(email, code);
     await get().setToken(access_token);
   },
 

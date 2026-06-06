@@ -69,6 +69,35 @@ export interface TrackingResponse {
   frames: TrackFrame[];
 }
 
+interface ValidationItem {
+  loc?: (string | number)[];
+  msg?: string;
+}
+
+interface ApiErrorBody {
+  detail?: string | ValidationItem[];
+}
+
+// FastAPI returns `detail` as a plain string for our own HTTPExceptions, but as
+// an array of {loc, msg} items for 422 request-validation errors. Flatten both
+// into one readable sentence so the UI never shows "[object Object]".
+function errorMessage(body: ApiErrorBody, status: number): string {
+  const { detail } = body;
+  if (typeof detail === "string" && detail) return detail;
+  if (Array.isArray(detail) && detail.length > 0) {
+    return detail
+      .map((item) => {
+        const field = item.loc?.[item.loc.length - 1];
+        const msg = item.msg ?? "Invalid value";
+        return typeof field === "string" && field !== "body"
+          ? `${field}: ${msg}`
+          : msg;
+      })
+      .join("; ");
+  }
+  return `HTTP ${status}`;
+}
+
 async function checkResponse(res: Response): Promise<void> {
   if (!res.ok) {
     // A 401/403 while we hold a token means it's no longer accepted: drop the
@@ -77,8 +106,8 @@ async function checkResponse(res: Response): Promise<void> {
     if ((res.status === 401 || res.status === 403) && hasStoredToken()) {
       onUnauthorized?.();
     }
-    const body = (await res.json().catch(() => ({}))) as { detail?: string };
-    throw new Error(body.detail ?? `HTTP ${res.status}`);
+    const body = (await res.json().catch(() => ({}))) as ApiErrorBody;
+    throw new Error(errorMessage(body, res.status));
   }
 }
 
@@ -105,15 +134,37 @@ export function oauthLoginUrl(provider: OAuthProvider): string {
   return `${API_BASE}/auth/${provider}/login`;
 }
 
-export async function registerUser(
+export interface RegisterStartResponse {
+  email: string;
+  detail: string;
+}
+
+// Step 1 of signup: validates and emails a verification code. No token yet —
+// the account is created only after the code is confirmed via verifyRegistration.
+export async function startRegistration(
   email: string,
   password: string,
   fullName?: string,
-): Promise<TokenResponse> {
+): Promise<RegisterStartResponse> {
   const res = await fetch(`${API_BASE}/auth/register`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email, password, full_name: fullName || null }),
+  });
+  await checkResponse(res);
+  return res.json() as Promise<RegisterStartResponse>;
+}
+
+// Step 2 of signup: confirm the emailed 6-digit code, creating the account and
+// returning an access token.
+export async function verifyRegistration(
+  email: string,
+  code: string,
+): Promise<TokenResponse> {
+  const res = await fetch(`${API_BASE}/auth/register/verify`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, code }),
   });
   await checkResponse(res);
   return res.json() as Promise<TokenResponse>;
