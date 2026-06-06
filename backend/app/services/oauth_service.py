@@ -26,6 +26,19 @@ class OAuthError(Exception):
     """Raised when an OAuth exchange fails or returns unusable data."""
 
 
+def _token_error(provider: str, body: dict) -> str:
+    """Build a useful message when a token response carries no access_token.
+
+    Google and GitHub both answer with HTTP 200 and an ``error`` /
+    ``error_description`` body on failures (bad/expired code, redirect_uri
+    mismatch, wrong client credentials), so surface that reason instead of a
+    generic "missing access_token".
+    """
+    reason = body.get("error_description") or body.get("error")
+    base = f"{provider} token response missing access_token"
+    return f"{base}: {reason}" if reason else base
+
+
 def _google_client() -> tuple[str, str]:
     return settings.GOOGLE_CLIENT_ID, settings.GOOGLE_CLIENT_SECRET
 
@@ -89,9 +102,10 @@ async def _google_exchange(code: str) -> OAuthProfile:
         )
         if token_res.status_code != 200:
             raise OAuthError(f"Google token exchange failed: {token_res.text}")
-        access_token = token_res.json().get("access_token")
+        token_body = token_res.json()
+        access_token = token_body.get("access_token")
         if not access_token:
-            raise OAuthError("Google token response missing access_token")
+            raise OAuthError(_token_error("Google", token_body))
 
         info_res = await client.get(
             "https://www.googleapis.com/oauth2/v3/userinfo",
@@ -132,9 +146,10 @@ async def _github_exchange(code: str) -> OAuthProfile:
         )
         if token_res.status_code != 200:
             raise OAuthError(f"GitHub token exchange failed: {token_res.text}")
-        access_token = token_res.json().get("access_token")
+        token_body = token_res.json()
+        access_token = token_body.get("access_token")
         if not access_token:
-            raise OAuthError("GitHub token response missing access_token")
+            raise OAuthError(_token_error("GitHub", token_body))
 
         auth_headers = {
             "Authorization": f"Bearer {access_token}",
