@@ -8,6 +8,7 @@ import {
   loginUser,
   oauthLoginUrl,
   registerUser,
+  setUnauthorizedHandler,
 } from "../utils/api";
 
 const TOKEN_KEY = "monoclip.token";
@@ -93,3 +94,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ token: null, user: null, status: "guest" });
   },
 }));
+
+// When any API request reports our token is no longer accepted (expired/revoked),
+// clear the session — the app then routes back to the login screen.
+setUnauthorizedHandler(() => {
+  useAuthStore.getState().logout();
+});

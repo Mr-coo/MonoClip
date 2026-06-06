@@ -19,6 +19,25 @@ function authHeaders(): Record<string, string> {
   }
 }
 
+function hasStoredToken(): boolean {
+  try {
+    return localStorage.getItem(TOKEN_KEY) !== null;
+  } catch {
+    return false;
+  }
+}
+
+// Notified when the backend rejects our credentials (401/403) on a request we
+// sent a token with — i.e. the session expired or was revoked. The auth store
+// registers a handler that drops the session so the app routes back to login.
+// Kept as a callback (rather than importing the store) to avoid a circular
+// import: the store already imports this module.
+let onUnauthorized: (() => void) | null = null;
+
+export function setUnauthorizedHandler(handler: (() => void) | null): void {
+  onUnauthorized = handler;
+}
+
 export interface CaptionSegment {
   id: number;
   start: number;
@@ -52,6 +71,12 @@ export interface TrackingResponse {
 
 async function checkResponse(res: Response): Promise<void> {
   if (!res.ok) {
+    // A 401/403 while we hold a token means it's no longer accepted: drop the
+    // session so the UI falls back to the login screen. Skipped when no token is
+    // stored, so a failed login/register (also 401) doesn't self-trigger this.
+    if ((res.status === 401 || res.status === 403) && hasStoredToken()) {
+      onUnauthorized?.();
+    }
     const body = (await res.json().catch(() => ({}))) as { detail?: string };
     throw new Error(body.detail ?? `HTTP ${res.status}`);
   }
