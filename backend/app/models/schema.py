@@ -28,3 +28,10 @@ class TrackFrame(BaseModel):
 class TrackingResponse(BaseModel):
     output_video_path: str
     frames: list[TrackFrame]
+
+
+# Blur reuses the per-frame tracking shape (TrackFrame): each frame carries the
+# bbox of the region that was blurred plus whether the tracker held that frame.
+class BlurResponse(BaseModel):
+    output_video_path: str
+    frames: list[TrackFrame]
