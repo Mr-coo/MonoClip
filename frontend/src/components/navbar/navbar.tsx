@@ -4,13 +4,14 @@ import { HiUpload } from "react-icons/hi";
 import { PiTextTBold } from "react-icons/pi";
 import { LuCaptions, LuScissors } from "react-icons/lu";
 import { TbBackground } from "react-icons/tb";
-import { MdMyLocation, MdOutlineArrowLeft, MdOutlineArrowRight } from "react-icons/md";
+import { MdMyLocation, MdBlurOn, MdOutlineArrowLeft, MdOutlineArrowRight } from "react-icons/md";
 import NavbarItem from "./navbar.item";
 import { Dispatch, SetStateAction, useState } from "react";
 import MediaItem from "./items/media.item";
 import CaptionItem from "./items/caption.item";
 import TextItem from "./items/text.item";
 import TrackingItem from "./items/tracking.item";
+import BlurItem from "./items/blur.item";
 import SmartCutItem from "./items/smartcut.item";
 import BgRemoveItem from "./items/bgremove.item";
 import { KeyboardShortcutsModal } from "../topbar/KeyboardShortcutsModal";
@@ -40,6 +41,11 @@ export default function Navbar({isShowDetail, setIsShowDetail}:{isShowDetail:boo
       icon: <MdMyLocation className="text-typography" size={iconSize} />,
       label: "Tracking",
       content: <TrackingItem />,
+    },
+    {
+      icon: <MdBlurOn className="text-typography" size={iconSize} />,
+      label: "Blur",
+      content: <BlurItem />,
     },
     {
       icon: <LuScissors className="text-typography" size={iconSize} />,
