@@ -8,7 +8,6 @@ from typing import Any
 
 import cv2
 
-
 @dataclass
 class TrackingResult:
     output_video_path: str
