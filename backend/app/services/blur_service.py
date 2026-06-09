@@ -147,15 +147,18 @@ def track_and_blur(
 
             writer.write(frame)
 
+            # Report the clamped box (what was actually blurred). The raw smoothed
+            # box can run off-frame with negative x/y, which BBox(ge=0) rejects.
+            cx, cy, cw, ch = clamped
             frames.append(
                 {
                     "frame_index": frame_index,
                     "timestamp": frame_index / fps,
                     "bbox": {
-                        "x": bx,
-                        "y": by,
-                        "w": bw,
-                        "h": bh,
+                        "x": cx,
+                        "y": cy,
+                        "w": cw,
+                        "h": ch,
                     },
                     "tracking_success": success,
                 }
