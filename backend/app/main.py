@@ -8,6 +8,7 @@ from app.core.deps import get_current_user
 
 from app.routes.auth import router as auth_router
 from app.routes.bgremove import router as bgremove_router
+from app.routes.blur import router as blur_router
 from app.routes.filter_badword import router as filter_badword_router
 from app.routes.transcribe import router as transcribe_router
 from app.routes.tracking import router as tracking_router
@@ -38,6 +39,10 @@ TAGS_METADATA = [
     {
         "name": "bgremove",
         "description": "AI background removal for images (RGBA PNG) and videos (VP9 WebM with alpha) using rembg / U2Net.",
+    },
+    {
+        "name": "blur",
+        "description": "Select a region (rectangle or circle) on a video and blur it, tracking the selection with CSRT as it moves.",
     },
     {
         "name": "auth",
@@ -73,6 +78,7 @@ app.include_router(filter_badword_router, dependencies=_auth_required)
 app.include_router(translate_router, dependencies=_auth_required)
 app.include_router(tracking_router)
 app.include_router(bgremove_router)
+app.include_router(blur_router)
 
 
 @app.get("/health")

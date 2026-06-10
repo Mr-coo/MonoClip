@@ -69,6 +69,13 @@ export interface TrackingResponse {
   frames: TrackFrame[];
 }
 
+export type BlurShape = "rect" | "circle";
+
+export interface BlurResponse {
+  output_video_path: string;
+  frames: TrackFrame[];
+}
+
 interface ValidationItem {
   loc?: (string | number)[];
   msg?: string;
@@ -293,4 +300,30 @@ export async function trackObject(
   });
   await checkResponse(res);
   return res.json() as Promise<TrackingResponse>;
+}
+
+export async function blurObject(
+  file: File,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  shape: BlurShape = "rect",
+  blurStrength = 0.3,
+): Promise<BlurResponse> {
+  const form = new FormData();
+  form.append("file", file);
+  form.append("x", String(x));
+  form.append("y", String(y));
+  form.append("w", String(w));
+  form.append("h", String(h));
+  form.append("shape", shape);
+  form.append("blur_strength", String(blurStrength));
+  const res = await fetch(`${API_BASE}/blur`, {
+    method: "POST",
+    headers: authHeaders(),
+    body: form,
+  });
+  await checkResponse(res);
+  return res.json() as Promise<BlurResponse>;
 }
